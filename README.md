@@ -7,7 +7,8 @@ Vision2DCS is a high-precision engineering tool designed for **Senior Automation
 > [!TIP]
 > **Capture high-quality screenshots** of the "P&ID View" and "HMI Topology" to populate your project documentation. The interface uses a "High-Performance HMI" (ISA-101) dark-mode theme.
 
-![Vision2DCS Hero Placeholder](https://via.placeholder.com/1200x600/0f172a/3b82f6?text=Vision2DCS+Industrial+Interface+Overview)
+<img width="2558" height="1225" alt="image" src="https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398" />
+
 
 ## 🚀 Key Features
 
