@@ -1,0 +1,7 @@
+{
+  "name": "DCS-Architect P&ID Analyzer",
+  "description": "A high-precision tool for automation engineers to extract DCS tag lists from P&ID diagrams, mapping them to Siemens PCS7 APL and ABB 800xA standards.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
