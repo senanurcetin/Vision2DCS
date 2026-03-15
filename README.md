@@ -4,6 +4,8 @@ Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a s
 
 ![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)
 
+Demo: [YouTube walkthrough](https://www.youtube.com/watch?v=x9uHCqvARMg)
+
 ## Why this project exists
 
 Instrumentation engineers still spend significant time translating P&IDs into tag lists, control structures, and HMI drafts by hand. Vision2DCS demonstrates how multimodal AI can accelerate the early design phase of automation projects while keeping the output visible and reviewable.
