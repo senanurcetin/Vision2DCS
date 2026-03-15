@@ -1,54 +1,65 @@
-# Vision2DCS: AI-Powered P&ID to DCS Architect 🏭
+# Vision2DCS
 
-Vision2DCS is a high-precision engineering tool designed for **Senior Automation & Process Control Engineers**. It leverages the **Gemini 3 Flash Vision Engine** to autonomously analyze Piping & Instrumentation Diagrams (P&IDs), extract instrument tag lists, and map them to industrial DCS standards like **Siemens PCS7 (APL)** and **ABB 800xA**.
+Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a structured engineering workflow. It analyzes instrumentation diagrams, drafts tag mappings, and produces visual topology concepts for modern DCS and HMI projects.
 
-## 🖼 Interface Preview
+![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)
 
-> [!TIP]
-> **Capture high-quality screenshots** of the "P&ID View" and "HMI Topology" to populate your project documentation. The interface uses a "High-Performance HMI" (ISA-101) dark-mode theme.
+## Why this project exists
 
-<img width="2558" height="1225" alt="image" src="https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398" />
+Instrumentation engineers still spend significant time translating P&IDs into tag lists, control structures, and HMI drafts by hand. Vision2DCS demonstrates how multimodal AI can accelerate the early design phase of automation projects while keeping the output visible and reviewable.
 
+## What it does
 
-## 🚀 Key Features
+- Parses uploaded process diagrams with Gemini-powered multimodal analysis.
+- Extracts instrumentation concepts into structured engineering data.
+- Drafts HMI and topology views with React Flow components.
+- Maps output toward DCS-centric thinking for platforms such as Siemens PCS 7 and ABB 800xA.
+- Packages the result as an explorable React/Vite prototype for portfolio review.
 
-- **Multimodal AI Extraction**: Uses Gemini 3 to identify ISA-5.1 instrument bubbles, control valves, and signal lines from raw images (PNG/JPG).
-- **Industrial Standards Mapping**:
-  - **Siemens PCS7**: Auto-assigns block types like `MonAnL`, `VlvAnL`, and `MotL`.
-  - **ABB 800xA**: Generates XML-compatible object mappings.
-- **Interactive HP-HMI Topology**: Automatically generates a High-Performance HMI layout using `@xyflow/react`.
-- **OT-Sentinel Safety Audit**: Built-in logic engine to detect "Orphan Signals" and naming violations.
-- **✨ Digital Twin Concept**: AI-generated 3D conceptual renders of the process area based on extracted instrumentation.
+## Architecture snapshot
 
-## 🏗 System Architecture
+- **Frontend:** React 19, TypeScript, Vite
+- **AI layer:** `@google/genai` with Gemini-based image and text reasoning
+- **Visualization:** React Flow for topology and node mapping
+- **Reference docs:** `TECHNICAL_GUIDE.md` for deeper implementation notes
 
-```mermaid
-graph TD
-    A[Raw P&ID Image] --> B{Gemini 3 Flash Vision}
-    B --> C[Structured JSON Tag List]
-    C --> D[OT-Sentinel Auditor]
-    C --> E[HP-HMI Topology Generator]
-    C --> F[Digital Twin Image Gen]
-    D --> G[Safety Alerts & Compliance]
-    E --> H[React Flow Interactive Map]
-    F --> I[Conceptual 3D Visuals]
-    G & H & I --> J[DCS Configuration Export]
+## Local setup
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+- A Google AI Studio API key
+
+### Install
+
+```bash
+npm install
+cp .env.example .env.local
 ```
 
-## 🛠 Technology Stack
+### Run
 
-- **Core**: React 19 (Pure ESM)
-- **AI**: Google Gemini 3 Flash Preview (Vision-to-JSON) & Gemini 2.5 Flash (Image Gen)
-- **UI/UX**: Tailwind CSS + High-Performance HMI (ISA-101) design principles
-- **Graph Engine**: `@xyflow/react` (React Flow) for topology mapping
+```bash
+npm run dev
+```
 
-## 📦 Installation & Setup
+### Build
 
-This project is designed as a **Native Browser ES Module** application.
+```bash
+npm run build
+```
 
-1. Clone the repository.
-2. Ensure you have `process.env.API_KEY` configured.
-3. Serve using any static web server: `npx serve .`
+## Repository highlights
 
----
-*Developed for the next generation of Industrial Automation Engineers.*
+- `services/geminiService.ts` contains the AI orchestration layer.
+- `components/HmiReactFlowView.tsx` drives the topology visualization.
+- `TECHNICAL_GUIDE.md` documents the engineering intent in more depth.
+
+## Portfolio note
+
+This repository is a concept-stage engineering tool. It is intended to showcase Industrial AI workflow design for automation engineering rather than serve as a production-ready export pipeline.
+
+## License
+
+MIT
