@@ -8,6 +8,10 @@ Demo: [YouTube walkthrough](https://www.youtube.com/watch?v=x9uHCqvARMg)
 
 Portfolio role: `archive proof`
 
+## Why it sits in supporting evidence
+
+Vision2DCS adds multimodal engineering-tool breadth to the portfolio, but it is intentionally secondary to the three lead case studies. Its role is to show industrial workflow design and automation-engineering context rather than serve as the primary applied-ML proof.
+
 ## Why this project exists
 
 Instrumentation engineers still spend significant time translating P&IDs into tag lists, control structures, and HMI drafts by hand. Vision2DCS demonstrates how multimodal AI can accelerate the early design phase of automation projects while keeping the output visible and reviewable.
