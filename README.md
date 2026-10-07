@@ -4,7 +4,7 @@ Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a s
 
 ![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)
 
-Demo: [YouTube walkthrough](https://www.youtube.com/watch?v=x9uHCqvARMg)
+Portfolio case study: [senanur-cetin.vercel.app/projects/vision2dcs](https://senanur-cetin.vercel.app/projects/vision2dcs)
 
 Portfolio role: `archive proof`
 
