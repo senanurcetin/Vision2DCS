@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { Instrument } from '../types';
-import { buildAbbXml, buildSiemensCsv, escapeCsvField, escapeXml } from './exportService';
+import { buildAbbXml, buildBomCsv, buildSiemensCsv, escapeCsvField, escapeXml } from './exportService';
 
 const inst = (overrides: Partial<Instrument>): Instrument => ({
   id: 'id',
@@ -74,6 +74,27 @@ describe('buildSiemensCsv', () => {
     expect(rows).toHaveLength(3);
     expect(rows[1]).toEqual(['TT-102', tricky.description, 'MonAnL', 'AI', '°C']);
     expect(rows[2]).toEqual(['XY-1', 'Pressure measurement', 'MonAnL', 'AI', '']);
+  });
+});
+
+describe('buildBomCsv', () => {
+  it('lists brand, model and cost per instrument with a total row', () => {
+    const rows = parseCsv(buildBomCsv([
+      inst({ tagName: 'PT-101', brand: 'Endress+Hauser', model: 'Cerabar; PMC71', estimatedCost: 1200 }),
+      inst({ tagName: 'TT-102', estimatedCost: 650.5 }),
+      inst({ tagName: 'XV-1' }),
+    ]));
+    expect(rows).toEqual([
+      ['Tag Name', 'Description', 'Brand', 'Model', 'Estimated Cost (USD)'],
+      ['PT-101', 'Pressure measurement', 'Endress+Hauser', 'Cerabar; PMC71', '1200'],
+      ['TT-102', 'Pressure measurement', '', '', '650.5'],
+      ['XV-1', 'Pressure measurement', '', '', ''],
+      ['Total', '', '', '', '1850.5'],
+    ]);
+  });
+
+  it('writes a zero total for an empty project', () => {
+    expect(parseCsv(buildBomCsv([])).at(-1)).toEqual(['Total', '', '', '', '0']);
   });
 });
 
