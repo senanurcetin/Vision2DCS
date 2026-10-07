@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Instrument, SignalType, PCS7BlockType } from "../types";
+import { Instrument } from "../types";
+import { parseInstrumentResponse } from "./normalizeInstruments";
 
 /**
  * GeminiService: Orchestrates the Vision-to-DCS extraction.
@@ -73,27 +74,7 @@ export const analyzePIDImage = async (base64Image: string): Promise<Instrument[]
       },
     });
 
-    const text = response.text;
-    if (!text) throw new Error("No data returned from AI");
-
-    const rawData = JSON.parse(text);
-    
-    return rawData.map((item: any, index: number) => ({
-      id: `inst-${Date.now()}-${index}`,
-      tagName: (item.tagName || `TAG-${index + 100}`).toUpperCase(),
-      equipmentType: item.equipmentType || "Unknown",
-      signalType: (['AI', 'AO', 'DI', 'DO'].includes(item.signalType) ? item.signalType : 'DI') as SignalType,
-      description: item.description || "DCS generated tag",
-      engineeringUnits: item.engineeringUnits || "Unit",
-      pcs7BlockType: (['MonAnL', 'MonDiL', 'MotL', 'VlvL', 'VlvAnL', 'PIDConL'].includes(item.pcs7BlockType) ? item.pcs7BlockType : 'MonDiL') as PCS7BlockType,
-      abb800xaObject: item.abb800xaObject || 'Signal_Object',
-      confidence: item.confidence as 'high' | 'medium' | 'low',
-      brand: item.brand,
-      model: item.model,
-      estimatedCost: item.estimatedCost,
-      connectedTo: item.connectedTo,
-      safetyWarning: item.safetyWarning
-    }));
+    return parseInstrumentResponse(response.text, `inst-${Date.now()}`);
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     throw error;
@@ -114,7 +95,7 @@ export const generateDigitalTwin = async (instruments: Instrument[]): Promise<st
       config: { imageConfig: { aspectRatio: "16:9" } }
     });
 
-    for (const part of response.candidates[0].content.parts) {
+    for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       if (part.inlineData) {
         return `data:image/png;base64,${part.inlineData.data}`;
       }

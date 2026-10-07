@@ -54,10 +54,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
-### Type check
+### Type check and tests
 
 ```bash
 npm run typecheck
+npm test
 ```
 
 ### Build
