@@ -21,7 +21,7 @@ Instrumentation engineers still spend significant time translating P&IDs into ta
 - Parses uploaded process diagrams with Gemini-powered multimodal analysis.
 - Extracts instrumentation concepts into structured engineering data.
 - Drafts HMI and topology views with React Flow components.
-- Maps output toward DCS-centric thinking for platforms such as Siemens PCS 7 and ABB 800xA.
+- Maps output toward DCS-centric thinking for platforms such as Siemens PCS 7 and ABB 800xA (CSV/XML exports are concept formats, not validated against the vendors' import schemas).
 - Packages the result as an explorable React/Vite prototype for portfolio review.
 
 ## Architecture snapshot

@@ -28,6 +28,12 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 
 ## 📊 Export Mappings
 
+> **Concept formats.** Both exports are illustrative layouts. They have not been validated against the real Siemens PCS 7 (Import/Export Assistant) or ABB 800xA (Bulk Data Manager) import schemas, so treat them as a starting point for an engineering tool chain, not as files to load into a live system.
+
+Export builders live in `services/exportService.ts` and are covered by unit tests:
+- **CSV:** semicolon delimiter, CRLF line endings, RFC 4180 quoting for fields containing `;`, `"` or line breaks, and a UTF-8 BOM so Excel shows units such as `°C` correctly.
+- **XML:** `&`, `<`, `>`, `"` and `'` are escaped and characters XML 1.0 forbids are dropped, so the output is always well-formed.
+
 ### Siemens PCS7 APL
 | Signal Type | ISA Tag | PCS7 Block Type |
 |-------------|---------|-----------------|
