@@ -5,7 +5,9 @@ import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
 import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin } from './services/geminiService';
-import { downloadSiemensCSV, downloadABBXML } from './services/exportService';
+import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText } from './services/exportService';
+import { normalizeInstrument } from './services/normalizeInstruments';
+import { parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
@@ -24,6 +26,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabView>('list');
   const [leftPanelView, setLeftPanelView] = useState<LeftPanelView>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
 
   const sentinelAlerts = useMemo(() => {
     if (!currentProject) return [];
@@ -94,6 +97,35 @@ const App: React.FC = () => {
     }));
   }, [currentProjectId, updateProject]);
 
+  const addInstrument = useCallback(() => {
+    if (!currentProjectId) return;
+    updateProject(currentProjectId, p => ({
+      ...p,
+      // Starts as Unknown/low confidence so the audit asks for it to be completed
+      instruments: [...p.instruments, normalizeInstrument(
+        { description: 'Manually added instrument', equipmentType: 'Manual' },
+        p.instruments.length,
+        `manual-${Date.now()}`,
+      )],
+    }));
+  }, [currentProjectId, updateProject]);
+
+  const exportBackup = (project: AnalysisProject) =>
+    downloadText(serializeProject(project), `${project.name}.vision2dcs.json`, 'application/json');
+
+  const importBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      addProject(parseProjectBackup(await file.text(), `proj-${Date.now()}`));
+      setErrorMessage(null);
+      setIsSidebarOpen(false);
+    } catch (err) {
+      setErrorMessage(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
   const commitRename = (project: AnalysisProject, value: string) => {
     const name = value.trim();
     if (name && name !== project.name) updateProject(project.id, p => ({ ...p, name }));
@@ -158,8 +190,10 @@ const App: React.FC = () => {
 
       <div className="flex-1 flex overflow-hidden">
         <aside className={`absolute inset-y-0 left-0 w-80 bg-slate-900 border-r border-slate-800 z-[60] transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-           <div className="p-6 border-b border-slate-800 flex justify-between">
+           <div className="p-6 border-b border-slate-800 flex items-center">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">History</h2>
+              <input type="file" ref={backupInputRef} onChange={importBackup} className="hidden" accept="application/json,.json" />
+              <button onClick={() => backupInputRef.current?.click()} className="ml-auto mr-4 text-[10px] font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300">Import</button>
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-500 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
            </div>
            <div className="p-4 space-y-3 overflow-y-auto h-full pb-24 custom-scrollbar">
@@ -185,6 +219,9 @@ const App: React.FC = () => {
                     )}
                     <button onClick={e => { e.stopPropagation(); setRenamingId(p.id); }} aria-label={`Rename ${p.name}`} className="text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536M9 13l6.232-6.232a2.5 2.5 0 113.536 3.536L12.536 16.536 8 17l.464-4.536z" /></svg>
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); exportBackup(p); }} aria-label={`Export ${p.name} backup`} className="text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                     </button>
                     <button onClick={e => { e.stopPropagation(); confirmDelete(p); }} aria-label={`Delete ${p.name}`} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 focus:opacity-100">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -264,8 +301,8 @@ const App: React.FC = () => {
            <div className="flex-1 overflow-hidden flex flex-col p-6">
               <div className="flex-1 overflow-hidden mb-6">
                 {activeTab === 'list' ? (
-                  <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} />
-                ) : <AuditBOM instruments={currentProject?.instruments || []} />}
+                  <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
+                ) : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
               </div>
 
               {currentProject && (

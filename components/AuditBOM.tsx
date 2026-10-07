@@ -4,9 +4,10 @@ import { Instrument } from '../types';
 
 interface Props {
   instruments: Instrument[];
+  onExport?: () => void;
 }
 
-const AuditBOM: React.FC<Props> = ({ instruments }) => {
+const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
   const totalCost = instruments.reduce((sum, inst) => sum + (inst.estimatedCost || 0), 0);
   const issues = instruments.filter(inst => inst.safetyWarning);
 
@@ -46,9 +47,14 @@ const AuditBOM: React.FC<Props> = ({ instruments }) => {
             </div>
             <h3 className="font-bold text-slate-200">Procurement & BOM</h3>
           </div>
-          <div className="text-right">
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Est. Project Capex</div>
-            <div className="text-xl font-bold text-blue-400">${totalCost.toLocaleString()}</div>
+          <div className="flex items-center gap-4">
+            {onExport && (
+              <button onClick={onExport} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors">BOM CSV</button>
+            )}
+            <div className="text-right">
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Est. Project Capex</div>
+              <div className="text-xl font-bold text-blue-400">${totalCost.toLocaleString()}</div>
+            </div>
           </div>
         </div>
 

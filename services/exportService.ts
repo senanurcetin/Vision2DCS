@@ -16,13 +16,25 @@ export const escapeXml = (value: string): string =>
 export const escapeCsvField = (value: string): string =>
   /[;"\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 
-export const buildSiemensCsv = (instruments: Instrument[]): string => {
+/** Semicolon-delimited CSV with CRLF rows, every field escaped. */
+export const toCsv = (rows: string[][]): string =>
+  rows.map(r => r.map(escapeCsvField).join(';')).join('\r\n') + '\r\n';
+
+export const buildSiemensCsv = (instruments: Instrument[]): string =>
   // Standard Siemens Import Format (Semicolon separated as requested)
-  const header = ['Tag Name', 'Description', 'Block Type', 'Signal Type', 'Engineering Units'];
-  const rows = instruments.map(i =>
-    [i.tagName, i.description, i.pcs7BlockType, i.signalType, i.engineeringUnits].map(escapeCsvField)
-  );
-  return [header, ...rows].map(r => r.join(';')).join('\r\n') + '\r\n';
+  toCsv([
+    ['Tag Name', 'Description', 'Block Type', 'Signal Type', 'Engineering Units'],
+    ...instruments.map(i => [i.tagName, i.description, i.pcs7BlockType, i.signalType, i.engineeringUnits]),
+  ]);
+
+/** Procurement list: one row per instrument plus a total. Costs are model estimates in USD. */
+export const buildBomCsv = (instruments: Instrument[]): string => {
+  const total = instruments.reduce((sum, i) => sum + (i.estimatedCost ?? 0), 0);
+  return toCsv([
+    ['Tag Name', 'Description', 'Brand', 'Model', 'Estimated Cost (USD)'],
+    ...instruments.map(i => [i.tagName, i.description, i.brand ?? '', i.model ?? '', i.estimatedCost?.toString() ?? '']),
+    ['Total', '', '', '', total.toString()],
+  ]);
 };
 
 export const buildAbbXml = (instruments: Instrument[]): string => {
@@ -39,18 +51,20 @@ export const buildAbbXml = (instruments: Instrument[]): string => {
   return xml;
 };
 
-export const downloadSiemensCSV = (instruments: Instrument[], filename: string) => {
-  // UTF-8 BOM so Excel opens units such as "°C" and non-ASCII descriptions correctly
-  const blob = new Blob(['﻿' + buildSiemensCsv(instruments)], { type: 'text/csv;charset=utf-8;' });
-  downloadFile(blob, `${filename}_Siemens_PCS7.csv`);
-};
+// UTF-8 BOM so Excel opens units such as "°C" and non-ASCII descriptions correctly
+const EXCEL_BOM = '\uFEFF';
 
-export const downloadABBXML = (instruments: Instrument[], filename: string) => {
-  const blob = new Blob([buildAbbXml(instruments)], { type: 'text/xml;charset=utf-8;' });
-  downloadFile(blob, `${filename}_ABB_800xA.xml`);
-};
+export const downloadSiemensCSV = (instruments: Instrument[], filename: string) =>
+  downloadText(EXCEL_BOM + buildSiemensCsv(instruments), `${filename}_Siemens_PCS7.csv`, 'text/csv');
 
-const downloadFile = (blob: Blob, filename: string) => {
+export const downloadABBXML = (instruments: Instrument[], filename: string) =>
+  downloadText(buildAbbXml(instruments), `${filename}_ABB_800xA.xml`, 'text/xml');
+
+export const downloadBomCSV = (instruments: Instrument[], filename: string) =>
+  downloadText(EXCEL_BOM + buildBomCsv(instruments), `${filename}_BOM.csv`, 'text/csv');
+
+export const downloadText = (content: string, filename: string, mimeType: string) => {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);

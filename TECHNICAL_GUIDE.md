@@ -27,6 +27,8 @@ Mapping a 2D image back to a node-based graph:
 
 - **Upload** (`services/imageUpload.ts`): only JPEG, PNG and WebP files up to 25 MB are accepted. Drawings larger than 2048 px on the longest side are downscaled in the browser, keeping their format so line work stays crisp, before they are sent to `/api/analyze`.
 - **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Corrupt saved data is skipped instead of breaking start-up. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
+- **Backups** (`services/projectBackup.ts`): a project can be exported as a `.vision2dcs.json` file and imported again, which is the way to move work between browsers. Imported files are treated as untrusted: the format and version are checked, every instrument goes back through `normalizeInstrument`, the project gets a new id, and image fields are kept only when they are inline `data:image/` URLs. That last check matters because the digital-twin image is also used as a download link `href`.
+- **Manual entries**: "Add instrument" appends a row that starts as `Unknown` with low confidence, so OT-Sentinel asks for it to be completed before export.
 
 ## 🛡 OT-Sentinel Audit Logic
 
