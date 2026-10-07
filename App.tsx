@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [currentProject, setCurrentProject] = useState<AnalysisProject | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingTwin, setIsGeneratingTwin] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabView>('list');
@@ -43,6 +44,8 @@ const App: React.FC = () => {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    // Reset so picking the same file again still triggers a change event
+    event.target.value = '';
     if (!file) return;
 
     const reader = new FileReader();
@@ -51,8 +54,9 @@ const App: React.FC = () => {
       const previewUrl = e.target?.result as string;
       
       setIsAnalyzing(true);
+      setErrorMessage(null);
       try {
-        const instruments = await analyzePIDImage(base64);
+        const instruments = await analyzePIDImage(base64, file.type);
         const newProject: AnalysisProject = {
           id: `proj-${Date.now()}`,
           name: file.name.replace(/\.[^/.]+$/, ""),
@@ -63,7 +67,7 @@ const App: React.FC = () => {
         setCurrentProject(newProject);
         saveProjects([newProject, ...projects]);
       } catch (err) {
-        alert("Analysis failed. Please check your P&ID image quality.");
+        setErrorMessage(`Analysis failed: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         setIsAnalyzing(false);
       }
@@ -74,6 +78,7 @@ const App: React.FC = () => {
   const createDigitalTwin = async () => {
     if (!currentProject || currentProject.instruments.length === 0) return;
     setIsGeneratingTwin(true);
+    setErrorMessage(null);
     try {
       const twinUrl = await generateDigitalTwin(currentProject.instruments);
       const updatedProject = { ...currentProject, digitalTwinUrl: twinUrl };
@@ -81,7 +86,7 @@ const App: React.FC = () => {
       saveProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
       setLeftPanelView('twin');
     } catch (err) {
-      alert("Conceptual generation failed.");
+      setErrorMessage(`Digital twin generation failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsGeneratingTwin(false);
     }
@@ -139,12 +144,21 @@ const App: React.FC = () => {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             {isGeneratingTwin ? 'Imagining Twin...' : 'Generate Digital Twin'}
           </button>
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp" />
           <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-lg transition-transform active:scale-95">
             Process Diagram
           </button>
         </div>
       </header>
+
+      {errorMessage && (
+        <div role="alert" className="flex items-center justify-between gap-4 px-6 py-3 bg-red-500/10 border-b border-red-500/30 text-sm text-red-300">
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} aria-label="Dismiss error" className="text-red-300/70 hover:text-red-200">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         <aside className={`absolute inset-y-0 left-0 w-80 bg-slate-900 border-r border-slate-800 z-[60] transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
