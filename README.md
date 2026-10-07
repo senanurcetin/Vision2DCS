@@ -46,10 +46,18 @@ npm install
 cp .env.example .env.local
 ```
 
+> **Security note:** the Gemini key is currently inlined into the client bundle by Vite, so it is visible to anyone who can load the app. Use it for local demos only and never publish a build created with a real key. A server-side proxy is planned.
+
 ### Run
 
 ```bash
 npm run dev
+```
+
+### Type check
+
+```bash
+npm run typecheck
 ```
 
 ### Build
