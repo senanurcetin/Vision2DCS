@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" font-family="Arial, Helvetica, sans-serif">
+  <!-- Synthetic P&ID drawn for Vision2DCS evaluation. Released with the repository under the MIT license. -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#000"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="700" fill="#fff"/>
+  <text x="40" y="50" font-size="22" font-weight="bold">FEED LINE TO REACTOR R-100</text>
+  <text x="40" y="78" font-size="14">DWG P-100-01  REV A</text>
+
+  <!-- Process line -->
+  <line x1="40" y1="450" x2="1160" y2="450" stroke="#000" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="50" y="485" font-size="14">2"-P-1001-CS  FEED</text>
+  <text x="1095" y="432" font-size="14">TO R-100</text>
+
+  <!-- FE-101 orifice -->
+  <line x1="250" y1="425" x2="250" y2="475" stroke="#000" stroke-width="3"/>
+  <line x1="262" y1="425" x2="262" y2="475" stroke="#000" stroke-width="3"/>
+
+  <!-- FT-101 field transmitter -->
+  <line x1="256" y1="425" x2="256" y2="352" stroke="#000" stroke-width="2"/>
+  <circle cx="256" cy="320" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="256" y="315" font-size="16" text-anchor="middle">FT</text>
+  <text x="256" y="337" font-size="16" text-anchor="middle">101</text>
+
+  <!-- FIC-101 panel-mounted controller -->
+  <circle cx="520" cy="200" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <line x1="488" y1="200" x2="552" y2="200" stroke="#000" stroke-width="2"/>
+  <text x="520" y="193" font-size="16" text-anchor="middle">FIC</text>
+  <text x="520" y="221" font-size="16" text-anchor="middle">101</text>
+
+  <!-- FCV-101 control valve with diaphragm actuator -->
+  <polygon points="760,425 760,475 810,450" fill="#fff" stroke="#000" stroke-width="3"/>
+  <polygon points="860,425 860,475 810,450" fill="#fff" stroke="#000" stroke-width="3"/>
+  <line x1="810" y1="450" x2="810" y2="385" stroke="#000" stroke-width="2"/>
+  <path d="M780,385 A30,30 0 0 1 840,385 Z" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="810" y="520" font-size="16" text-anchor="middle">FCV-101</text>
+
+  <!-- Signal lines (dashed electric) -->
+  <polyline points="288,320 400,320 400,200 488,200" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="10,6"/>
+  <polyline points="552,200 810,200 810,355" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="10,6"/>
+
+  <!-- PT-102 pressure transmitter downstream -->
+  <line x1="960" y1="450" x2="960" y2="352" stroke="#000" stroke-width="2"/>
+  <circle cx="960" cy="320" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="960" y="315" font-size="16" text-anchor="middle">PT</text>
+  <text x="960" y="337" font-size="16" text-anchor="middle">102</text>
+
+  <!-- TT-103 temperature transmitter -->
+  <line x1="1080" y1="450" x2="1080" y2="572" stroke="#000" stroke-width="2"/>
+  <circle cx="1080" cy="604" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="1080" y="599" font-size="16" text-anchor="middle">TT</text>
+  <text x="1080" y="621" font-size="16" text-anchor="middle">103</text>
+
+  <text x="40" y="670" font-size="12">Ranges: FT-101 0-50 m3/h, PT-102 0-10 barg, TT-103 0-150 degC</text>
+</svg>

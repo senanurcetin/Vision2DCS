@@ -1,0 +1,11 @@
+{
+  "description": "Buffer tank with a level control loop, high-level switch, on/off inlet valve and outlet pump.",
+  "instruments": [
+    { "tagName": "LT-201", "signalType": "AI", "pcs7BlockType": "MonAnL" },
+    { "tagName": "LIC-201", "signalType": ["AI", "AO"], "pcs7BlockType": "PIDConL" },
+    { "tagName": "LV-201", "signalType": "AO", "pcs7BlockType": "VlvAnL" },
+    { "tagName": "LSH-202", "signalType": "DI", "pcs7BlockType": "MonDiL" },
+    { "tagName": "XV-203", "signalType": "DO", "pcs7BlockType": "VlvL" },
+    { "tagName": "P-204", "signalType": "DO", "pcs7BlockType": "MotL" }
+  ]
+}

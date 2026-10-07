@@ -40,6 +40,14 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 
 `services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
 
+## 📏 Evaluation
+
+`npm run eval` (`eval/run.ts`) sends each `samples/<name>/drawing.png` through the same `server/gemini.ts` path the app uses and scores the result against `expected.json` (`eval/score.ts`):
+- **Tag matching** is format-insensitive, so `FT101`, `FT 101` and `FT-101` count as the same tag. Precision and recall are micro-averaged over all samples.
+- **Signal and block type accuracy** are measured on matched tags only. An expected field may list several acceptable values.
+
+The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely.
+
 ## 📊 Export Mappings
 
 > **Concept formats.** Both exports are illustrative layouts. They have not been validated against the real Siemens PCS 7 (Import/Export Assistant) or ABB 800xA (Bulk Data Manager) import schemas, so treat them as a starting point for an engineering tool chain, not as files to load into a live system.

@@ -1,0 +1,10 @@
+{
+  "description": "Flow control loop on a reactor feed line with downstream pressure and temperature transmitters.",
+  "instruments": [
+    { "tagName": "FT-101", "signalType": "AI", "pcs7BlockType": "MonAnL" },
+    { "tagName": "FIC-101", "signalType": ["AI", "AO"], "pcs7BlockType": "PIDConL" },
+    { "tagName": "FCV-101", "signalType": "AO", "pcs7BlockType": "VlvAnL" },
+    { "tagName": "PT-102", "signalType": "AI", "pcs7BlockType": "MonAnL" },
+    { "tagName": "TT-103", "signalType": "AI", "pcs7BlockType": "MonAnL" }
+  ]
+}

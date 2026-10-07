@@ -78,11 +78,31 @@ GEMINI_API_KEY=... npm start
 
 `npm run build` writes the app to `dist/` and the server to `dist-server/`. `npm start` serves both on `PORT`. The server limits each client to 20 AI requests per minute, accepts images up to 10 MB, and retries rate-limited or transient Gemini failures with backoff. The rate limit is held in memory per process and keyed by client IP, so it assumes a single instance that is not behind a shared proxy.
 
+## Measuring extraction quality
+
+`samples/` holds synthetic P&IDs drawn for this repository. Each has an SVG source, the rendered `drawing.png` and a hand-checked `expected.json`. To run the benchmark against the configured model:
+
+```bash
+npm run eval
+```
+
+The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. It calls the real API, so it needs `GEMINI_API_KEY` and is not part of CI. CI does check that the samples stay well-formed. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
+
+## Limitations
+
+- **AI output needs review.** Extracted tags, `connectedTo` links and especially the BOM brands and costs are model estimates, not engineering data. The OT-Sentinel audit flags common problems but is not a substitute for a check by an engineer.
+- **Exports are concept formats.** The PCS 7 CSV and 800xA XML are well-formed but have not been validated against the vendors' import tools (#2).
+- **Single-user storage.** Project history lives in the browser's `localStorage`, about 5 MB. A warning appears when it is full.
+- **Single-instance server.** The rate limiter is in memory, and there is no authentication. Put the app behind your own access control before exposing it.
+- **Preview models.** The default model names are preview releases and may change. Override them with the `GEMINI_*_MODEL` variables.
+
 ## Repository highlights
 
 - `server/gemini.ts` contains the AI orchestration layer; `server/api.ts` is the HTTP contract in front of it.
+- `services/` holds the browser-side logic: tag parsing, normalization, OT-Sentinel audit, exports, topology layout. All of it is unit tested.
 - `components/HmiReactFlowView.tsx` drives the topology visualization.
-- `TECHNICAL_GUIDE.md` documents the engineering intent in more depth.
+- `eval/` and `samples/` hold the extraction benchmark.
+- `TECHNICAL_GUIDE.md` documents the engineering intent in more depth. `CONTRIBUTING.md` lists the checks to run before a pull request.
 
 ## Portfolio note
 

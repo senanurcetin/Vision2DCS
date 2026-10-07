@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" font-family="Arial, Helvetica, sans-serif">
+  <!-- Synthetic P&ID drawn for Vision2DCS evaluation. Released with the repository under the MIT license. -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#000"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="760" fill="#fff"/>
+  <text x="40" y="50" font-size="22" font-weight="bold">BUFFER TANK T-200</text>
+  <text x="40" y="78" font-size="14">DWG P-200-01  REV A</text>
+
+  <!-- Tank -->
+  <rect x="380" y="180" width="240" height="380" rx="20" fill="#fff" stroke="#000" stroke-width="4"/>
+  <text x="500" y="380" font-size="20" text-anchor="middle" font-weight="bold">T-200</text>
+
+  <!-- Inlet with XV-203 on/off valve (solenoid) -->
+  <line x1="40" y1="230" x2="380" y2="230" stroke="#000" stroke-width="4" marker-end="url(#arrow)"/>
+  <polygon points="170,205 170,255 210,230" fill="#fff" stroke="#000" stroke-width="3"/>
+  <polygon points="250,205 250,255 210,230" fill="#fff" stroke="#000" stroke-width="3"/>
+  <line x1="210" y1="230" x2="210" y2="170" stroke="#000" stroke-width="2"/>
+  <rect x="190" y="140" width="40" height="30" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="210" y="161" font-size="14" text-anchor="middle">S</text>
+  <text x="210" y="290" font-size="16" text-anchor="middle">XV-203</text>
+
+  <!-- LT-201 level transmitter -->
+  <line x1="620" y1="300" x2="700" y2="300" stroke="#000" stroke-width="2"/>
+  <line x1="620" y1="500" x2="700" y2="500" stroke="#000" stroke-width="2"/>
+  <line x1="700" y1="300" x2="700" y2="500" stroke="#000" stroke-width="2"/>
+  <line x1="700" y1="400" x2="748" y2="400" stroke="#000" stroke-width="2"/>
+  <circle cx="780" cy="400" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="780" y="395" font-size="16" text-anchor="middle">LT</text>
+  <text x="780" y="417" font-size="16" text-anchor="middle">201</text>
+
+  <!-- LIC-201 panel controller -->
+  <circle cx="960" cy="260" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <line x1="928" y1="260" x2="992" y2="260" stroke="#000" stroke-width="2"/>
+  <text x="960" y="253" font-size="16" text-anchor="middle">LIC</text>
+  <text x="960" y="281" font-size="16" text-anchor="middle">201</text>
+  <polyline points="812,400 880,400 880,260 928,260" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="10,6"/>
+
+  <!-- LSH-202 high level switch -->
+  <line x1="620" y1="220" x2="748" y2="220" stroke="#000" stroke-width="2"/>
+  <circle cx="780" cy="220" r="32" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="780" y="215" font-size="16" text-anchor="middle">LSH</text>
+  <text x="780" y="237" font-size="16" text-anchor="middle">202</text>
+
+  <!-- Outlet: pump P-204 then LV-201 control valve -->
+  <line x1="500" y1="560" x2="500" y2="650" stroke="#000" stroke-width="4"/>
+  <line x1="500" y1="650" x2="1160" y2="650" stroke="#000" stroke-width="4" marker-end="url(#arrow)"/>
+  <circle cx="600" cy="650" r="34" fill="#fff" stroke="#000" stroke-width="3"/>
+  <polygon points="582,632 582,668 628,650" fill="none" stroke="#000" stroke-width="2"/>
+  <text x="600" y="715" font-size="16" text-anchor="middle">P-204</text>
+
+  <polygon points="900,625 900,675 950,650" fill="#fff" stroke="#000" stroke-width="3"/>
+  <polygon points="1000,625 1000,675 950,650" fill="#fff" stroke="#000" stroke-width="3"/>
+  <line x1="950" y1="650" x2="950" y2="585" stroke="#000" stroke-width="2"/>
+  <path d="M920,585 A30,30 0 0 1 980,585 Z" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text x="950" y="715" font-size="16" text-anchor="middle">LV-201</text>
+  <polyline points="992,260 1060,260 1060,560 950,560 950,555" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="10,6"/>
+
+  <text x="40" y="745" font-size="12">LT-201 0-100 %, LSH-202 trips at 90 %, P-204 motor 7.5 kW</text>
+</svg>
