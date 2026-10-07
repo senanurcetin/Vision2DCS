@@ -9,7 +9,7 @@ interface Props {
 }
 
 const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete }) => {
-  const signalTypes: SignalType[] = ['AI', 'AO', 'DI', 'DO'];
+  const signalTypes: SignalType[] = ['AI', 'AO', 'DI', 'DO', 'Unknown'];
   const blockTypes: PCS7BlockType[] = ['MonAnL', 'MonDiL', 'MotL', 'VlvL', 'VlvAnL', 'PIDConL', 'Unknown'];
 
   const getConfidenceStyle = (conf: 'high' | 'medium' | 'low') => {

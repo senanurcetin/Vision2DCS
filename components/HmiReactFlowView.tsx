@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 
 import { Instrument } from '../types';
+import { getLoopKey } from '../services/tagParser';
 import TransmitterNode from './nodes/TransmitterNode';
 import ValveNode from './nodes/ValveNode';
 import LoopGroupNode from './nodes/LoopGroupNode';
@@ -34,7 +35,7 @@ const HmiReactFlowView: React.FC<Props> = ({ instruments }) => {
     // 1. Group by Loop
     const loopGroups: Record<string, Instrument[]> = {};
     instruments.forEach(inst => {
-      const loop = inst.tagName.match(/[0-9]+/)?.[0] || 'Misc';
+      const loop = getLoopKey(inst.tagName) ?? 'Misc';
       if (!loopGroups[loop]) loopGroups[loop] = [];
       loopGroups[loop].push(inst);
     });

@@ -1,5 +1,7 @@
-
 import { Instrument, SentinelAlert } from '../types';
+import { ISA_NAMING_PATTERN, getLoopKey, isValveTag } from './tagParser';
+
+const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'esdv', 'interlock'];
 
 /**
  * OTSentinelService: Automated engineering logic auditor.
@@ -9,12 +11,9 @@ export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => 
   const alerts: SentinelAlert[] = [];
   const loopMap = new Map<string, Instrument[]>();
 
-  // ISA-5.1 Regex: Expects Alpha-Numeric-Alpha sequence (e.g., PT-101A)
-  const namingRegex = /^[A-Z]{1,4}-[0-9]{2,5}[A-Z]?$/;
-
   instruments.forEach(inst => {
-    // 1. Tag Naming Validation
-    if (!namingRegex.test(inst.tagName)) {
+    // 1. Syntactic: ISA-5.1 tag naming
+    if (!ISA_NAMING_PATTERN.test(inst.tagName)) {
       alerts.push({
         tag: inst.tagName,
         severity: 'error',
@@ -22,31 +21,46 @@ export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => 
       });
     }
 
-    // Loop Aggregation for functional checks
-    const match = inst.tagName.match(/[0-9]+/);
-    if (match) {
-      const loopId = match[0];
-      if (!loopMap.has(loopId)) loopMap.set(loopId, []);
-      loopMap.get(loopId)?.push(inst);
+    // 2. Classification: values the model could not map need engineer review
+    if (inst.signalType === 'Unknown' || inst.pcs7BlockType === 'Unknown') {
+      alerts.push({
+        tag: inst.tagName,
+        severity: 'warning',
+        message: 'Signal or block type could not be classified from the drawing. Assign it manually before export.'
+      });
     }
 
-    // 2. Safety Descriptor Scan
-    const safetyKeywords = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'esdv', 'interlock'];
+    // 3. Functional: analog signals need engineering units for scaling
+    if ((inst.signalType === 'AI' || inst.signalType === 'AO') && !inst.engineeringUnits.trim()) {
+      alerts.push({
+        tag: inst.tagName,
+        severity: 'warning',
+        message: 'Analog signal has no engineering units. Range and unit are required for DCS scaling.'
+      });
+    }
+
+    // 4. Functional: safety-related descriptors
     const desc = inst.description.toLowerCase();
-    if (safetyKeywords.some(key => desc.includes(key))) {
+    if (SAFETY_KEYWORDS.some(key => desc.includes(key))) {
       alerts.push({
         tag: inst.tagName,
         severity: 'warning',
         message: 'Critical safety function identified. Ensure IEC 61511 compliance and verify SIL rating.'
       });
     }
+
+    const loopKey = getLoopKey(inst.tagName);
+    if (loopKey) {
+      if (!loopMap.has(loopKey)) loopMap.set(loopKey, []);
+      loopMap.get(loopKey)?.push(inst);
+    }
   });
 
-  // 3. Functional Loop Integrity Check
-  // Detects if a measurement exists (AI) but no control element (AO) is present in a closed-loop context.
+  // 5. Topology: a flow measurement without a final control element in the same loop
   loopMap.forEach((items, loopId) => {
-    const hasFlowTransmitter = items.some(i => i.tagName.startsWith('F') && i.signalType === 'AI');
-    const hasControlValve = items.some(i => i.signalType === 'AO' || i.tagName.includes('V'));
+    // Loop keys start with the measured-variable letter, so "F-..." is a flow loop
+    const hasFlowTransmitter = loopId.startsWith('F-') && items.some(i => i.signalType === 'AI');
+    const hasControlValve = items.some(i => i.signalType === 'AO' || isValveTag(i.tagName));
 
     if (hasFlowTransmitter && !hasControlValve) {
       alerts.push({

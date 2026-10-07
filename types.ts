@@ -1,5 +1,5 @@
 
-export type SignalType = 'AI' | 'AO' | 'DI' | 'DO';
+export type SignalType = 'AI' | 'AO' | 'DI' | 'DO' | 'Unknown';
 
 export type PCS7BlockType = 'MonAnL' | 'MonDiL' | 'MotL' | 'VlvL' | 'VlvAnL' | 'PIDConL' | 'Unknown';
 

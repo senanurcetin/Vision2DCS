@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+body { font-family: 'Inter', sans-serif; }
+#root { height: 100%; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Alias used by panels; scrollbar styling above applies globally */
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: #475569 #1e293b; }
+
+/* React Flow Overrides for HP-HMI */
+.react-flow__pane { background: #0f172a; }
+.react-flow__handle { background: #475569; width: 6px; height: 6px; border: 1px solid #1e293b; }
+.react-flow__edge-path { stroke: #334155; stroke-width: 2; }

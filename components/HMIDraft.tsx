@@ -1,1 +1,0 @@
-// Deprecated. Please refer to HmiDraftGenerator.tsx

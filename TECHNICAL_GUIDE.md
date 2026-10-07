@@ -10,16 +10,21 @@ The core of the application lies in the `geminiService.ts`. Instead of simple OC
 ## 🕸 Topology Engine (React Flow)
 
 Mapping a 2D image back to a node-based graph:
-1. **Loop Parsing**: We use regex to extract loop IDs (e.g., `101` from `PT-101`).
+1. **Loop Parsing**: `services/tagParser.ts` splits a tag into function letters, loop number and suffix. The loop is the first (measured-variable) letter plus the number, so `FT-101` and `FCV-101` share loop `F-101` while `TT-101` is loop `T-101`.
 2. **Grouping**: Instruments with the same loop ID are clustered into `loopGroup` nodes.
 3. **Auto-Routing**: The `HmiReactFlowView` calculates `X/Y` coordinates to present a logical left-to-right process flow (Sensor -> Controller -> Actuator).
 
 ## 🛡 OT-Sentinel Audit Logic
 
-The audit engine (`otSentinelService.ts`) performs three types of checks:
-1. **Syntactic**: Does the tag match the `[Letter]-[Number]` ISA format?
-2. **Functional**: Is a safety-critical tag missing mandatory descriptors?
-3. **Topology**: Does an Analog Output (AO) exist without a corresponding Input (AI) in the same loop?
+The audit engine (`otSentinelService.ts`) performs these checks:
+1. **Syntactic**: Does the tag match the ISA format `[Letters]-[Number][Suffix]` (e.g. `PT-101A`)?
+2. **Classification**: Did the model return a signal or block type that could not be mapped (`Unknown`)? These need manual assignment before export.
+3. **Functional**: Does an analog signal (AI/AO) lack engineering units? Does the description mention a safety function (relief, ESD, interlock...) that needs IEC 61511 / SIL review?
+4. **Topology**: Does a flow loop (`F-...`) contain an analog input but no final control element (an AO signal or a tag whose function letters end in `V`)?
+
+## Model Output Normalization
+
+`services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
 
 ## 📊 Export Mappings
 
