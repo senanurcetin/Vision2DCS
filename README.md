@@ -10,7 +10,7 @@ Portfolio role: `archive proof`
 
 ## Why it sits in supporting evidence
 
-Vision2DCS adds multimodal engineering-tool breadth to the portfolio, but it is intentionally secondary to the three lead case studies. Its role is to show industrial workflow design and automation-engineering context rather than serve as the primary applied-ML proof.
+Vision2DCS adds multimodal engineering-tool breadth to the portfolio, but it is intentionally secondary to the lead case studies. Its role is to show industrial workflow design and automation-engineering context rather than serve as the primary applied-ML proof.
 
 ## Why this project exists
 
