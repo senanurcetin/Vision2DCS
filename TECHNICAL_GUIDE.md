@@ -2,10 +2,19 @@
 
 ## 🧠 AI Strategy: Multimodal Extraction
 
-The core of the application lies in the `geminiService.ts`. Instead of simple OCR, we use **Multimodal Prompting**:
+The core of the application lies in `server/gemini.ts`. Instead of simple OCR, we use **Multimodal Prompting**:
 - **System Instruction**: We prime the model as a "Lead DCS Architect" to ensure technical vocabulary (e.g., "Engineering Units", "Solenoid", "Diaphragm Actuator").
 - **Schema Enforcement**: We use the Gemini `responseSchema` to force the model to return valid JSON that maps directly to our `Instrument` interface.
 - **Contextual Inference**: The model doesn't just read text; it infers "connectedTo" relationships based on the visual proximity of equipment in the P&ID.
+
+## 🔐 Server Boundary
+
+All Gemini calls run on the server so the API key never reaches the browser:
+
+- `server/api.ts` is a Web-standard `Request → Response` handler for `POST /api/analyze` and `POST /api/digital-twin`. It validates input (JPEG/PNG/WebP, ≤ 10 MB), applies a per-client rate limit, and maps failures to user-safe messages. A rejected key or missing configuration returns 503, and other upstream errors return 502 without exposing internal details.
+- `server/retry.ts` retries 429 and 5xx responses with exponential backoff.
+- `server/node.ts` adapts the handler to Node's `http` module with a 15 MB body limit. It is mounted by `server/vitePlugin.ts` for `vite` and `vite preview`, and by `server/httpServer.ts` for `npm start`. The production server also serves `dist/` with an SPA fallback.
+- `services/geminiService.ts` is the thin browser client for these routes.
 
 ## 🕸 Topology Engine (React Flow)
 

@@ -8,10 +8,11 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --ssr server/start.ts --outDir dist-server",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "node dist-server/start.js"
   },
   "dependencies": {
     "@google/genai": "1.52.0",

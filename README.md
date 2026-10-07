@@ -27,7 +27,8 @@ Instrumentation engineers still spend significant time translating P&IDs into ta
 ## Architecture snapshot
 
 - **Frontend:** React 19, TypeScript, Vite
-- **AI layer:** `@google/genai` with Gemini-based image and text reasoning
+- **AI layer:** `@google/genai` with Gemini-based image and text reasoning, called only from the server
+- **Server:** a small Web-standard `/api` handler, served by Vite in development and by a Node server (`npm start`) in production
 - **Visualization:** React Flow for topology and node mapping
 - **Reference docs:** `TECHNICAL_GUIDE.md` for deeper implementation notes
 
@@ -46,7 +47,14 @@ npm install
 cp .env.example .env.local
 ```
 
-> **Security note:** the Gemini key is currently inlined into the client bundle by Vite, so it is visible to anyone who can load the app. Use it for local demos only and never publish a build created with a real key. A server-side proxy is planned.
+Set `GEMINI_API_KEY` in `.env.local`. The key is read only on the server. The browser calls `/api/analyze` and `/api/digital-twin` and never sees the key.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GEMINI_API_KEY` | (required) | Google AI Studio key |
+| `GEMINI_ANALYSIS_MODEL` | `gemini-3-flash-preview` | Model for P&ID extraction |
+| `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` | Model for the digital-twin render |
+| `PORT` | `3000` | Port for `npm start` |
 
 ### Run
 
@@ -61,15 +69,18 @@ npm run typecheck
 npm test
 ```
 
-### Build
+### Build and run in production
 
 ```bash
 npm run build
+GEMINI_API_KEY=... npm start
 ```
+
+`npm run build` writes the app to `dist/` and the server to `dist-server/`. `npm start` serves both on `PORT`. The server limits each client to 20 AI requests per minute, accepts images up to 10 MB, and retries rate-limited or transient Gemini failures with backoff. The rate limit is held in memory per process and keyed by client IP, so it assumes a single instance that is not behind a shared proxy.
 
 ## Repository highlights
 
-- `services/geminiService.ts` contains the AI orchestration layer.
+- `server/gemini.ts` contains the AI orchestration layer; `server/api.ts` is the HTTP contract in front of it.
 - `components/HmiReactFlowView.tsx` drives the topology visualization.
 - `TECHNICAL_GUIDE.md` documents the engineering intent in more depth.
 

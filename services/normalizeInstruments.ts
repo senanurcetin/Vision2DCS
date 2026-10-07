@@ -1,5 +1,8 @@
 import { Instrument, SignalType, PCS7BlockType } from "../types";
 
+/** The model answered, but not with something usable. Safe to show to the user. */
+export class ModelOutputError extends Error {}
+
 const SIGNAL_TYPES: SignalType[] = ['AI', 'AO', 'DI', 'DO'];
 const BLOCK_TYPES: PCS7BlockType[] = ['MonAnL', 'MonDiL', 'MotL', 'VlvL', 'VlvAnL', 'PIDConL'];
 const CONFIDENCE_LEVELS: Instrument['confidence'][] = ['high', 'medium', 'low'];
@@ -43,15 +46,15 @@ export const normalizeInstrument = (item: Record<string, unknown>, index: number
 
 /** Parses the model's JSON text into instruments, rejecting anything that is not an array. */
 export const parseInstrumentResponse = (text: string | undefined, idPrefix: string): Instrument[] => {
-  if (!text) throw new Error("No data returned from AI");
+  if (!text) throw new ModelOutputError("No data returned from AI");
 
   let raw: unknown;
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new Error("AI returned malformed JSON");
+    throw new ModelOutputError("AI returned malformed JSON");
   }
-  if (!Array.isArray(raw)) throw new Error("AI response is not a list of instruments");
+  if (!Array.isArray(raw)) throw new ModelOutputError("AI response is not a list of instruments");
 
   return raw
     .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && !Array.isArray(item))
