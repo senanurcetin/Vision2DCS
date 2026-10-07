@@ -4,13 +4,13 @@ Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a s
 
 ![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)
 
-Demo: [YouTube walkthrough](https://www.youtube.com/watch?v=x9uHCqvARMg)
+Portfolio case study: [senanur-cetin.vercel.app/projects/vision2dcs](https://senanur-cetin.vercel.app/projects/vision2dcs)
 
 Portfolio role: `archive proof`
 
 ## Why it sits in supporting evidence
 
-Vision2DCS adds multimodal engineering-tool breadth to the portfolio, but it is intentionally secondary to the three lead case studies. Its role is to show industrial workflow design and automation-engineering context rather than serve as the primary applied-ML proof.
+Vision2DCS adds multimodal engineering-tool breadth to the portfolio, but it is intentionally secondary to the lead case studies. Its role is to show industrial workflow design and automation-engineering context rather than serve as the primary applied-ML proof.
 
 ## Why this project exists
 
