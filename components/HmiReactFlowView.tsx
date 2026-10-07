@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 
 import { Instrument } from '../types';
-import { getLoopKey } from '../services/tagParser';
+import { buildConnections, groupLoops } from '../services/topologyLayout';
 import TransmitterNode from './nodes/TransmitterNode';
 import ValveNode from './nodes/ValveNode';
 import LoopGroupNode from './nodes/LoopGroupNode';
@@ -32,20 +32,16 @@ const HmiReactFlowView: React.FC<Props> = ({ instruments }) => {
     const rfNodes: Node[] = [];
     const rfEdges: Edge[] = [];
     
-    // 1. Group by Loop
-    const loopGroups: Record<string, Instrument[]> = {};
-    instruments.forEach(inst => {
-      const loop = getLoopKey(inst.tagName) ?? 'Misc';
-      if (!loopGroups[loop]) loopGroups[loop] = [];
-      loopGroups[loop].push(inst);
-    });
+    // 1. Group by ISA loop, ordered sensor -> controller -> actuator
+    const loopGroups = groupLoops(instruments);
 
     let currentX = 50;
     let currentY = 50;
 
-    Object.entries(loopGroups).forEach(([loopId, items]) => {
+    loopGroups.forEach(({ loopId, items }) => {
       const groupId = `group-${loopId}`;
-      const groupWidth = 450;
+      // Wide enough for every instrument in the loop (130px per node)
+      const groupWidth = Math.max(450, 100 + items.length * 130);
       const groupHeight = 250;
 
       // Add the Loop Area Group Node
@@ -70,21 +66,6 @@ const HmiReactFlowView: React.FC<Props> = ({ instruments }) => {
           parentId: groupId,
           extent: 'parent',
         });
-
-        // Simple Loop Piping: Connect AI -> AO or sequence
-        if (idx > 0) {
-          rfEdges.push({
-            id: `edge-${items[idx-1].id}-${nodeId}`,
-            source: items[idx-1].id,
-            target: nodeId,
-            type: 'step',
-            animated: inst.signalType.startsWith('A'),
-            style: { 
-              stroke: inst.signalType.startsWith('A') ? '#10b981' : '#3b82f6',
-              strokeDasharray: inst.signalType.startsWith('D') ? '5,5' : '0'
-            }
-          });
-        }
       });
 
       currentX += groupWidth + 100;
@@ -92,6 +73,22 @@ const HmiReactFlowView: React.FC<Props> = ({ instruments }) => {
         currentX = 50;
         currentY += groupHeight + 100;
       }
+    });
+
+    // 2. Signal lines: model-inferred connectedTo links, else the loop sequence
+    buildConnections(loopGroups).forEach(({ source, target }) => {
+      const analog = target.signalType.startsWith('A');
+      rfEdges.push({
+        id: `edge-${source.id}-${target.id}`,
+        source: source.id,
+        target: target.id,
+        type: 'step',
+        animated: analog,
+        style: {
+          stroke: analog ? '#10b981' : '#3b82f6',
+          strokeDasharray: target.signalType.startsWith('D') ? '5,5' : '0'
+        }
+      });
     });
 
     return { nodes: rfNodes, edges: rfEdges };

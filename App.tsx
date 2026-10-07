@@ -1,19 +1,21 @@
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import InstrumentTable from './components/InstrumentTable';
 import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
-import { Instrument, AnalysisProject, SentinelAlert } from './types';
+import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin } from './services/geminiService';
 import { downloadSiemensCSV, downloadABBXML } from './services/exportService';
 import { runSentinelAudit } from './services/otSentinelService';
+import { prepareImage, validateImageFile } from './services/imageUpload';
+import { useProjects } from './hooks/useProjects';
 
 type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
 const App: React.FC = () => {
-  const [projects, setProjects] = useState<AnalysisProject[]>([]);
-  const [currentProject, setCurrentProject] = useState<AnalysisProject | null>(null);
+  const { projects, currentProject, selectProject, addProject, updateProject, removeProject, storageWarning } = useProjects();
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingTwin, setIsGeneratingTwin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -22,20 +24,6 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabView>('list');
   const [leftPanelView, setLeftPanelView] = useState<LeftPanelView>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('dcs_projects');
-    if (saved) {
-      try {
-        setProjects(JSON.parse(saved));
-      } catch (e) { console.error("Load error"); }
-    }
-  }, []);
-
-  const saveProjects = (updatedProjects: AnalysisProject[]) => {
-    setProjects(updatedProjects);
-    localStorage.setItem('dcs_projects', JSON.stringify(updatedProjects));
-  };
 
   const sentinelAlerts = useMemo(() => {
     if (!currentProject) return [];
@@ -48,31 +36,29 @@ const App: React.FC = () => {
     event.target.value = '';
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = (e.target?.result as string).split(',')[1];
-      const previewUrl = e.target?.result as string;
-      
-      setIsAnalyzing(true);
-      setErrorMessage(null);
-      try {
-        const instruments = await analyzePIDImage(base64, file.type);
-        const newProject: AnalysisProject = {
-          id: `proj-${Date.now()}`,
-          name: file.name.replace(/\.[^/.]+$/, ""),
-          date: new Date().toLocaleString(),
-          imageUrl: previewUrl,
-          instruments: instruments
-        };
-        setCurrentProject(newProject);
-        saveProjects([newProject, ...projects]);
-      } catch (err) {
-        setErrorMessage(`Analysis failed: ${err instanceof Error ? err.message : String(err)}`);
-      } finally {
-        setIsAnalyzing(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setErrorMessage(invalid);
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setErrorMessage(null);
+    try {
+      const image = await prepareImage(file);
+      const instruments = await analyzePIDImage(image.base64, image.mimeType);
+      addProject({
+        id: `proj-${Date.now()}`,
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        date: new Date().toLocaleString(),
+        imageUrl: image.dataUrl,
+        instruments,
+      });
+    } catch (err) {
+      setErrorMessage(`Analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const createDigitalTwin = async () => {
@@ -81,9 +67,7 @@ const App: React.FC = () => {
     setErrorMessage(null);
     try {
       const twinUrl = await generateDigitalTwin(currentProject.instruments);
-      const updatedProject = { ...currentProject, digitalTwinUrl: twinUrl };
-      setCurrentProject(updatedProject);
-      saveProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
+      updateProject(currentProject.id, p => ({ ...p, digitalTwinUrl: twinUrl }));
       setLeftPanelView('twin');
     } catch (err) {
       setErrorMessage(`Digital twin generation failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -92,25 +76,33 @@ const App: React.FC = () => {
     }
   };
 
+  const currentProjectId = currentProject?.id;
+
   const updateInstrument = useCallback((id: string, updates: Partial<Instrument>) => {
-    if (!currentProject) return;
-    const updatedProject = {
-      ...currentProject,
-      instruments: currentProject.instruments.map(inst => inst.id === id ? { ...inst, ...updates } : inst)
-    };
-    setCurrentProject(updatedProject);
-    saveProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
-  }, [currentProject, projects]);
+    if (!currentProjectId) return;
+    updateProject(currentProjectId, p => ({
+      ...p,
+      instruments: p.instruments.map(inst => inst.id === id ? { ...inst, ...updates } : inst)
+    }));
+  }, [currentProjectId, updateProject]);
 
   const deleteInstrument = useCallback((id: string) => {
-    if (!currentProject) return;
-    const updatedProject = {
-      ...currentProject,
-      instruments: currentProject.instruments.filter(inst => inst.id !== id)
-    };
-    setCurrentProject(updatedProject);
-    saveProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
-  }, [currentProject, projects]);
+    if (!currentProjectId) return;
+    updateProject(currentProjectId, p => ({
+      ...p,
+      instruments: p.instruments.filter(inst => inst.id !== id)
+    }));
+  }, [currentProjectId, updateProject]);
+
+  const commitRename = (project: AnalysisProject, value: string) => {
+    const name = value.trim();
+    if (name && name !== project.name) updateProject(project.id, p => ({ ...p, name }));
+    setRenamingId(null);
+  };
+
+  const confirmDelete = (project: AnalysisProject) => {
+    if (window.confirm(`Delete "${project.name}" from History? This cannot be undone.`)) removeProject(project.id);
+  };
 
   return (
     <div className="flex h-full flex-col bg-slate-950">
@@ -151,6 +143,10 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {storageWarning && (
+        <div role="status" className="px-6 py-2 bg-amber-500/10 border-b border-amber-500/30 text-xs text-amber-300">{storageWarning}</div>
+      )}
+
       {errorMessage && (
         <div role="alert" className="flex items-center justify-between gap-4 px-6 py-3 bg-red-500/10 border-b border-red-500/30 text-sm text-red-300">
           <span>{errorMessage}</span>
@@ -167,9 +163,33 @@ const App: React.FC = () => {
               <button onClick={() => setIsSidebarOpen(false)} className="text-slate-500 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
            </div>
            <div className="p-4 space-y-3 overflow-y-auto h-full pb-24 custom-scrollbar">
+              {projects.length === 0 && <p className="text-xs text-slate-600 italic px-1">No saved projects yet.</p>}
               {projects.map(p => (
-                <div key={p.id} onClick={() => { setCurrentProject(p); setIsSidebarOpen(false); }} className={`p-4 rounded-xl border cursor-pointer transition-all ${currentProject?.id === p.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-500'}`}>
-                  <h4 className="text-sm font-bold text-white mb-1 truncate">{p.name}</h4>
+                <div key={p.id} onClick={() => { if (renamingId !== p.id) { selectProject(p.id); setIsSidebarOpen(false); } }} className={`group p-4 rounded-xl border cursor-pointer transition-all ${currentProject?.id === p.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-500'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {renamingId === p.id ? (
+                      <input
+                        autoFocus
+                        defaultValue={p.name}
+                        aria-label="Project name"
+                        onClick={e => e.stopPropagation()}
+                        onBlur={e => commitRename(p, e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') commitRename(p, e.currentTarget.value);
+                          if (e.key === 'Escape') setRenamingId(null);
+                        }}
+                        className="flex-1 min-w-0 bg-slate-900 border border-blue-500/50 rounded px-2 py-0.5 text-sm font-bold text-white focus:outline-none"
+                      />
+                    ) : (
+                      <h4 className="flex-1 min-w-0 text-sm font-bold text-white truncate">{p.name}</h4>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); setRenamingId(p.id); }} aria-label={`Rename ${p.name}`} className="text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536M9 13l6.232-6.232a2.5 2.5 0 113.536 3.536L12.536 16.536 8 17l.464-4.536z" /></svg>
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); confirmDelete(p); }} aria-label={`Delete ${p.name}`} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 focus:opacity-100">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                   <div className="flex justify-between text-[9px] font-bold text-slate-500"><span>{p.date}</span><span>{p.instruments.length} TAGS</span></div>
                 </div>
               ))}
@@ -181,7 +201,7 @@ const App: React.FC = () => {
             <div className="h-full relative overflow-auto custom-scrollbar">
               {currentProject ? (
                 <div className="p-12 min-w-full min-h-full flex items-center justify-center">
-                  <img src={currentProject.imageUrl} className="max-w-none shadow-2xl rounded" style={{ transform: `scale(${zoom})` }} />
+                  <img src={currentProject.imageUrl} alt={`P&ID drawing: ${currentProject.name}`} className="max-w-none shadow-2xl rounded" style={{ transform: `scale(${zoom})` }} />
                 </div>
               ) : <div className="h-full flex items-center justify-center text-slate-700 text-sm italic">No diagram loaded</div>}
               <div className="absolute top-4 left-4 flex bg-slate-900/80 rounded-full border border-slate-700 p-1">
@@ -200,7 +220,7 @@ const App: React.FC = () => {
             <div className="h-full p-12 bg-slate-900 flex flex-col items-center justify-center gap-6 overflow-auto">
               <div className="relative group max-w-4xl">
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                <img src={currentProject.digitalTwinUrl} className="relative rounded-2xl shadow-2xl border border-white/10" />
+                <img src={currentProject.digitalTwinUrl} alt={`Digital twin concept for ${currentProject.name}`} className="relative rounded-2xl shadow-2xl border border-white/10" />
                 <div className="absolute bottom-6 left-6 right-6 p-4 bg-slate-900/80 backdrop-blur rounded-xl border border-white/10 flex justify-between items-center transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                   <div className="text-xs text-white">
                     <p className="font-bold">Digital Twin Concept</p>

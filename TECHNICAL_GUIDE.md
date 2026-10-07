@@ -20,8 +20,13 @@ All Gemini calls run on the server so the API key never reaches the browser:
 
 Mapping a 2D image back to a node-based graph:
 1. **Loop Parsing**: `services/tagParser.ts` splits a tag into function letters, loop number and suffix. The loop is the first (measured-variable) letter plus the number, so `FT-101` and `FCV-101` share loop `F-101` while `TT-101` is loop `T-101`.
-2. **Grouping**: Instruments with the same loop ID are clustered into `loopGroup` nodes.
-3. **Auto-Routing**: The `HmiReactFlowView` calculates `X/Y` coordinates to present a logical left-to-right process flow (Sensor -> Controller -> Actuator).
+2. **Grouping and ordering** (`services/topologyLayout.ts`): instruments with the same loop key are clustered into `loopGroup` nodes and ordered by role: measurement first, then controller (`PIDConL` or a `C` after the measured-variable letter, e.g. `FIC`), then final element (valves, AO/DO, motors). The model's own output order no longer decides the layout.
+3. **Signal lines**: each loop is chained in that order, and the model's `connectedTo` links are drawn on top, including links between loops. Partial links never remove the loop chain, and each pair gets a single line.
+
+## 🖼 Upload and Persistence
+
+- **Upload** (`services/imageUpload.ts`): only JPEG, PNG and WebP files up to 25 MB are accepted. Drawings larger than 2048 px on the longest side are downscaled in the browser, keeping their format so line work stays crisp, before they are sent to `/api/analyze`.
+- **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Corrupt saved data is skipped instead of breaking start-up. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
 
 ## 🛡 OT-Sentinel Audit Logic
 
