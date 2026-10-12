@@ -1,5 +1,5 @@
 import { Instrument, SentinelAlert } from '../types';
-import { ISA_NAMING_PATTERN, getLoopKey, isValveTag } from './tagParser';
+import { getLoopKey, isValidIsaTag, isValveTag } from './tagParser';
 
 const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'esdv', 'interlock'];
 
@@ -13,7 +13,7 @@ export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => 
 
   instruments.forEach(inst => {
     // 1. Syntactic: ISA-5.1 tag naming
-    if (!ISA_NAMING_PATTERN.test(inst.tagName)) {
+    if (!isValidIsaTag(inst.tagName)) {
       alerts.push({
         tag: inst.tagName,
         severity: 'error',

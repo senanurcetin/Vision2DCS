@@ -24,6 +24,18 @@ export const parseTag = (tagName: string): ParsedTag | null => {
   return { functionLetters, loopNumber, suffix };
 };
 
+/** Canonical tag identity ("FCV-101A"), or null when the tag cannot be parsed. */
+export const canonicalizeTag = (tagName: string): string | null => {
+  const parsed = parseTag(tagName);
+  return parsed ? `${parsed.functionLetters}-${parsed.loopNumber}${parsed.suffix}` : null;
+};
+
+/** Whether a parsed tag conforms to the audit's ISA naming constraints. */
+export const isValidIsaTag = (tagName: string): boolean => {
+  const canonicalTag = canonicalizeTag(tagName);
+  return canonicalTag !== null && ISA_NAMING_PATTERN.test(canonicalTag);
+};
+
 /** Loop identity ("F-101"), or null when the tag cannot be parsed. */
 export const getLoopKey = (tagName: string): string | null => {
   const parsed = parseTag(tagName);

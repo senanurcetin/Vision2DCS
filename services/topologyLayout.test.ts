@@ -72,6 +72,13 @@ describe('buildConnections', () => {
     ])).toEqual(['PT-1>PV-1']);
   });
 
+  it('matches connectedTo references using canonical tag identity', () => {
+    expect(pairs([
+      inst('PT-5', { connectedTo: ' pv101a ' }),
+      inst('PV-101A', { signalType: 'AO', pcs7BlockType: 'VlvAnL' }),
+    ])).toEqual(['PT-5>PV-101A']);
+  });
+
   it('ignores links to unknown tags and self links, and does not chain Misc', () => {
     expect(pairs([
       inst('PT-1', { connectedTo: 'NOPE-9' }),

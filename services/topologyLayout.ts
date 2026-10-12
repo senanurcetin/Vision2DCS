@@ -1,5 +1,5 @@
 import { Instrument } from '../types';
-import { getLoopKey, isValveTag, parseTag } from './tagParser';
+import { canonicalizeTag, getLoopKey, isValveTag, parseTag } from './tagParser';
 
 export type LoopRole = 'sensor' | 'controller' | 'actuator';
 
@@ -47,8 +47,9 @@ export interface Connection {
  * links (which may cross loops). Partial model links never drop the loop chain.
  */
 export const buildConnections = (groups: LoopGroup[]): Connection[] => {
+  const tagKey = (tagName: string) => canonicalizeTag(tagName) ?? tagName.trim().toUpperCase();
   const byTag = new Map<string, Instrument>();
-  groups.forEach(g => g.items.forEach(i => byTag.set(i.tagName.toUpperCase(), i)));
+  groups.forEach(g => g.items.forEach(i => byTag.set(tagKey(i.tagName), i)));
 
   const connections: Connection[] = [];
   const seen = new Set<string>();
@@ -66,7 +67,7 @@ export const buildConnections = (groups: LoopGroup[]): Connection[] => {
     for (let i = 1; i < items.length; i++) add(items[i - 1], items[i]);
   });
   groups.forEach(({ items }) => items.forEach(source => {
-    const target = source.connectedTo ? byTag.get(source.connectedTo.trim().toUpperCase()) : undefined;
+    const target = source.connectedTo ? byTag.get(tagKey(source.connectedTo)) : undefined;
     if (target) add(source, target);
   }));
   return connections;

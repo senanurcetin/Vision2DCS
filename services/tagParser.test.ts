@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getLoopKey, isValveTag, parseTag } from './tagParser';
+import { canonicalizeTag, getLoopKey, isValidIsaTag, isValveTag, parseTag } from './tagParser';
 
 describe('parseTag', () => {
   it('splits function letters, loop number and suffix', () => {
@@ -29,6 +29,21 @@ describe('getLoopKey', () => {
 
   it('returns null for unparseable tags', () => {
     expect(getLoopKey('TAG')).toBeNull();
+  });
+});
+
+describe('canonicalizeTag and isValidIsaTag', () => {
+  it('canonicalizes case and optional separators before audit validation', () => {
+    expect(canonicalizeTag(' fcv 101a ')).toBe('FCV-101A');
+    expect(isValidIsaTag(' fcv 101a ')).toBe(true);
+    expect(isValidIsaTag('pt101')).toBe(true);
+  });
+
+  it('rejects tags outside the audit naming constraints', () => {
+    expect(isValidIsaTag('PT-1')).toBe(false);
+    expect(isValidIsaTag('PT-101AB')).toBe(false);
+    expect(isValidIsaTag('NOT-A-TAG')).toBe(false);
+    expect(canonicalizeTag('NOT-A-TAG')).toBeNull();
   });
 });
 
