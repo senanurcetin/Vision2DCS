@@ -1,16 +1,12 @@
-# Vision2DCS
+# Vision2DCS — P&ID-to-HMI Engineering Assistant
+
+**React · TypeScript · Gemini multimodal AI · React Flow · Structured instrumentation extraction**
 
 Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a structured engineering workflow. It analyzes instrumentation diagrams, drafts tag mappings, and produces visual topology concepts for modern DCS and HMI projects.
 
 ![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)
 
 Portfolio case study: [senanur-cetin.vercel.app/projects/vision2dcs](https://senanur-cetin.vercel.app/projects/vision2dcs)
-
-Portfolio role: `archive proof`
-
-## Why it sits in supporting evidence
-
-Vision2DCS adds multimodal engineering-tool breadth to the portfolio, but it is intentionally secondary to the lead case studies. Its role is to show industrial workflow design and automation-engineering context rather than serve as the primary applied-ML proof.
 
 ## Why this project exists
 
@@ -104,9 +100,9 @@ The benchmark prints per-sample missed and unexpected tags plus overall tag prec
 - `eval/` and `samples/` hold the extraction benchmark.
 - `TECHNICAL_GUIDE.md` documents the engineering intent in more depth. `CONTRIBUTING.md` lists the checks to run before a pull request.
 
-## Portfolio note
+## Engineering readiness
 
-This repository is archive proof for Industrial AI workflow design in automation engineering. It is intended to showcase multimodal engineering-tool thinking rather than serve as a production-ready export pipeline.
+This is a human-in-the-loop **concept-generation tool**, not a validated PLC/DCS engineering exporter. Always independently review extracted tags, connections and bill-of-materials suggestions against source drawings and the target vendor's engineering tools.
 
 ## License
 
