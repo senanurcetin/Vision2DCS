@@ -50,7 +50,7 @@ describe('ISA tag naming and control-loop contract', () => {
     },
   );
 
-  it.each(['V-101', 'FT-101', 'CV101P', 'NOT-A-TAG', ''])(
+  it.each(['V-101', 'FT-101', 'VC101P', 'NOT-A-TAG', ''])(
     'does not confuse %s with a valve',
     (tag) => {
       expect(isValveTag(tag)).toBe(false);
