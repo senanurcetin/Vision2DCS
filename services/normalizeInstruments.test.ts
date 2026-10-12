@@ -33,6 +33,29 @@ describe('normalizeInstrument', () => {
     expect(inst.confidence).toBe('low');
   });
 
+  it('does not promote missing or invalid model tag names to high confidence', () => {
+    for (const [tag, expectedTag] of [
+      [undefined, 'TAG-102'],
+      ['  ', 'TAG-102'],
+      ['INVALID/TAG', 'INVALID/TAG'],
+      ['FT-1', 'FT-1'],
+    ] as const) {
+      const instrument = normalizeInstrument({
+        tagName: tag, signalType: 'AI', pcs7BlockType: 'MonAnL', confidence: 'high',
+      }, 2, 'run');
+      expect(instrument.tagName).toBe(expectedTag);
+      expect(instrument.confidence).toBe('low');
+    }
+  });
+
+  it('retains high confidence for a canonicalizable valid source tag', () => {
+    const instrument = normalizeInstrument({
+      tagName: ' pt 101 ', signalType: 'AI', pcs7BlockType: 'MonAnL', confidence: 'high',
+    }, 1, 'run');
+    expect(instrument.confidence).toBe('high');
+    expect(instrument.tagName).toBe('PT 101');
+  });
+
   it('defaults a missing confidence to low rather than leaving it undefined', () => {
     const inst = normalizeInstrument({ tagName: 'PT-1', signalType: 'AI', pcs7BlockType: 'MonAnL' }, 0, 'p');
     expect(inst.confidence).toBe('low');
