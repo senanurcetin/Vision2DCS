@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a reviewable and testable P&ID engineering improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Engineering problem
+      description: Describe who needs this and the operator or engineer review step
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Proposed approach
+      description: Explain affected inputs, schemas, exports and UI behavior
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation and safety constraints
+      description: Suggest synthetic benchmark cases and human verification criteria
+    validations:
+      required: false
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Data boundaries
+      options:
+        - label: No confidential process information or client artifacts are required in this issue.
+          required: true
