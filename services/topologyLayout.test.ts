@@ -80,9 +80,9 @@ describe('buildConnections', () => {
   });
 
   it.each([
-    ['first', ['FT101', 'FT-101']],
-    ['reversed', ['FT-101', 'FT101']],
-  ])('does not guess a connectedTo target when canonical tags collide (%s)', (_name, labels) => {
+    { name: 'first', labels: ['FT101', 'FT-101'] },
+    { name: 'reversed', labels: ['FT-101', 'FT101'] },
+  ])('does not guess a connectedTo target when canonical tags collide ($name)', ({ labels }) => {
     const source = inst('PT-5', { id: 'source', connectedTo: 'ft 101' });
     const duplicates = labels.map((tagName, index) =>
       inst(tagName, { id: `flow-${index}` }));
