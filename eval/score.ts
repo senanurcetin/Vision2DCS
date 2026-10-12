@@ -35,8 +35,19 @@ export interface ExtractedInstrument {
 }
 
 export const scoreSample = (expected: ExpectedInstrument[], actual: ExtractedInstrument[]): SampleScore => {
+  // Each expected instrument must have a unique canonical identity. Otherwise
+  // one extracted instrument could count as several true positives, yielding
+  // precision and F1 scores greater than 1.
+  const expectedTags = new Set<string>();
+  for (const instrument of expected) {
+    const tag = canonicalTag(instrument.tagName);
+    if (expectedTags.has(tag)) {
+      throw new Error(`Duplicate expected instrument tag: ${tag}`);
+    }
+    expectedTags.add(tag);
+  }
+
   const actualByTag = new Map(actual.map(a => [canonicalTag(a.tagName), a]));
-  const expectedTags = new Set(expected.map(e => canonicalTag(e.tagName)));
 
   let signalCorrect = 0;
   let blockCorrect = 0;
