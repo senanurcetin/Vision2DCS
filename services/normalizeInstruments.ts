@@ -1,4 +1,5 @@
 import { Instrument, SignalType, PCS7BlockType } from "../types";
+import { isValidIsaTag } from "./tagParser";
 
 /** The model answered, but not with something usable. Safe to show to the user. */
 export class ModelOutputError extends Error {}
@@ -19,16 +20,20 @@ const pick = <T extends string>(value: unknown, allowed: readonly T[]): T | unde
  * plausible default, so the audit and the engineer can see them.
  */
 export const normalizeInstrument = (item: Record<string, unknown>, index: number, idPrefix: string): Instrument => {
+  const sourceTag = asString(item.tagName);
   const signalType = pick(item.signalType, SIGNAL_TYPES);
   const pcs7BlockType = pick(item.pcs7BlockType, BLOCK_TYPES);
-  const confidence = signalType && pcs7BlockType
+  // Synthetic placeholders or malformed model tags must not inherit an
+  // unsupported 'high' confidence, even when signal/block mappings look valid.
+  const trustedTag = sourceTag !== undefined && isValidIsaTag(sourceTag);
+  const confidence = trustedTag && signalType && pcs7BlockType
     ? pick(item.confidence, CONFIDENCE_LEVELS) ?? 'low'
     : 'low';
   const cost = item.estimatedCost;
 
   return {
     id: `${idPrefix}-${index}`,
-    tagName: (asString(item.tagName) ?? `TAG-${index + 100}`).toUpperCase(),
+    tagName: (sourceTag ?? `TAG-${index + 100}`).toUpperCase(),
     equipmentType: asString(item.equipmentType) ?? 'Unknown',
     signalType: signalType ?? 'Unknown',
     description: asString(item.description) ?? 'DCS generated tag',
