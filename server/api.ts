@@ -22,7 +22,7 @@ const error = (status: number, message: string) => json(status, { error: message
 // Only canonical padded/unpadded base64 groups are accepted. The newline guard
 // is necessary because JavaScript's $ anchor also matches before a final LF.
 const BASE64_IMAGE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const isValidBase64 = (value: string) => BASE64_IMAGE.test(value) && !/[\\r\\n]/.test(value);
+const isValidBase64 = (value: string) => BASE64_IMAGE.test(value) && !/[\r\n]/.test(value);
 const decodedSize = (base64: string) => Math.floor((base64.length * 3) / 4)
   - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
 
