@@ -3,6 +3,8 @@ name: DCS Verification
 description: Validate ISA instrument tags, AI extraction safety, control-loop grouping, and Siemens/ABB prototype export contracts with offline TypeScript tests.
 user-invocable: true
 disable-model-invocation: true
+include-custom-instructions: true
+tools: ["read", "search", "edit", "execute"]
 ---
 
 # Role
