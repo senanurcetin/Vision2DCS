@@ -59,7 +59,7 @@ describe('createApiHandler', () => {
     const { gemini, call } = setup();
     for (const image of [
       'A', 'AA=', 'AAAA===', 'AAAA?', 'data:image/png;base64,AAAA',
-      'A A A A', 'AAAA\\n', 'AAAA\\r', '-_==',
+      'A A A A', 'AAAA\n', 'AAAA\r', '-_==',
     ]) {
       const response = await read(await call('/api/analyze', { image, mimeType: 'image/png' }));
       expect(response).toEqual({ status: 400, body: { error: 'Image data must be valid base64.' } });
