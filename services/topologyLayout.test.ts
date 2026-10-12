@@ -79,6 +79,27 @@ describe('buildConnections', () => {
     ])).toEqual(['PT-5>PV-101A']);
   });
 
+  it.each([
+    { name: 'first', labels: ['FT101', 'FT-101'] },
+    { name: 'reversed', labels: ['FT-101', 'FT101'] },
+  ])('does not guess a connectedTo target when canonical tags collide ($name)', ({ labels }) => {
+    const source = inst('PT-5', { id: 'source', connectedTo: 'ft 101' });
+    const duplicates = labels.map((tagName, index) =>
+      inst(tagName, { id: `flow-${index}` }));
+    const unaffected = inst('PT-6', { id: 'other-source', connectedTo: ' pv101a ' });
+    const unique = inst('PV-101A', {
+      id: 'unique-target', signalType: 'AO', pcs7BlockType: 'VlvAnL',
+    });
+
+    const connections = buildConnections(groupLoops([source, ...duplicates, unaffected, unique]));
+    // An implicit same-loop chain may still connect the duplicated records.
+    // A cross-loop reference to the ambiguous identity must not pick either one.
+    expect(connections.filter(c => c.source.id === source.id)).toEqual([]);
+    // Ambiguity in one tag must not suppress unrelated valid references.
+    expect(connections.some(c => c.source.id === unaffected.id && c.target.id === unique.id))
+      .toBe(true);
+  });
+
   it('ignores links to unknown tags and self links, and does not chain Misc', () => {
     expect(pairs([
       inst('PT-1', { connectedTo: 'NOPE-9' }),

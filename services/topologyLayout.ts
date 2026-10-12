@@ -48,8 +48,17 @@ export interface Connection {
  */
 export const buildConnections = (groups: LoopGroup[]): Connection[] => {
   const tagKey = (tagName: string) => canonicalizeTag(tagName) ?? tagName.trim().toUpperCase();
-  const byTag = new Map<string, Instrument>();
-  groups.forEach(g => g.items.forEach(i => byTag.set(tagKey(i.tagName), i)));
+  // Duplicate canonical labels are ambiguous: never silently route a model
+  // reference to whichever instrument happened to appear last.
+  const byTag = new Map<string, Instrument | null>();
+  groups.forEach(g => g.items.forEach(i => {
+    const key = tagKey(i.tagName);
+    if (byTag.has(key)) {
+      byTag.set(key, null);
+    } else {
+      byTag.set(key, i);
+    }
+  }));
 
   const connections: Connection[] = [];
   const seen = new Set<string>();
