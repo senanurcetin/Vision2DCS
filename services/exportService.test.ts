@@ -54,10 +54,23 @@ describe('escapeCsvField', () => {
     expect(escapeCsvField('PT-101')).toBe('PT-101');
   });
 
-  it('quotes values with delimiters, quotes or newlines', () => {
+  it('quotes values with delimiters, quotes, tabs or newlines', () => {
     expect(escapeCsvField('a;b')).toBe('"a;b"');
     expect(escapeCsvField('say "hi"')).toBe('"say ""hi"""');
     expect(escapeCsvField('line\nbreak')).toBe('"line\nbreak"');
+    expect(escapeCsvField('tab\tseparated')).toBe('"tab\tseparated"');
+  });
+
+  it('neutralizes leading spreadsheet formula characters from untrusted input', () => {
+    for (const value of [
+      '=1+2', '+SUM(A1:A2)', '-1+2', '@SUM(A1:A2)', ' =HYPERLINK("https://example.org")',
+      '\u200B=1+2',
+    ]) {
+      expect(parseCsv('Value\r\n' + escapeCsvField(value) + '\r\n')[1][0]).toBe("'" + value);
+    }
+    expect(escapeCsvField('\t=1+2')).toBe('"\'\t=1+2"');
+    expect(escapeCsvField("'=already-text")).toBe("'=already-text");
+    expect(escapeCsvField('Temperature -4 °C')).toBe('Temperature -4 °C');
   });
 });
 
@@ -67,6 +80,21 @@ describe('buildSiemensCsv', () => {
       'Tag Name;Description;Block Type;Signal Type;Engineering Units\r\n' +
       'PT-101;Pressure measurement;MonAnL;AI;barg\r\n'
     );
+  });
+
+  it('protects all untrusted instrument columns without changing normal tags', () => {
+    const rows = parseCsv(buildSiemensCsv([inst({
+      tagName: '=HYPERLINK("https://example.org")',
+      description: ' =2+2',
+      engineeringUnits: '+SUM(A1:A2)',
+    })]));
+    expect(rows[1]).toEqual([
+      '\'=HYPERLINK("https://example.org")',
+      "' =2+2",
+      'MonAnL',
+      'AI',
+      "'+SUM(A1:A2)",
+    ]);
   });
 
   it('round-trips special characters through a CSV reader', () => {
