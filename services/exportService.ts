@@ -12,9 +12,20 @@ export const escapeXml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 
-/** RFC 4180 quoting with a semicolon delimiter: quote fields containing ; " CR or LF. */
-export const escapeCsvField = (value: string): string =>
-  /[;"\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+/**
+ * A value beginning with a spreadsheet formula operator can execute when a
+ * generated CSV is opened in Excel/LibreOffice. Neutralize it *before* RFC
+ * quoting; quoted CSV cells alone are not sufficient protection.
+ *
+ * This changes suspicious source values by prefixing an apostrophe, so these
+ * conceptual exports must still be checked before any vendor-specific import.
+ */
+const SPREADSHEET_FORMULA = /^[\s\u200B-\u200F\u202A-\u202E\u2060\uFEFF]*[=+\-@]/u;
+
+export const escapeCsvField = (value: string): string => {
+  const safe = SPREADSHEET_FORMULA.test(value) ? "'" + value : value;
+  return /[;\t"\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+};
 
 export const buildSiemensCsv = (instruments: Instrument[]): string => {
   // Standard Siemens Import Format (Semicolon separated as requested)
