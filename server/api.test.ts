@@ -47,6 +47,26 @@ describe('createApiHandler', () => {
     expect((await call('/api/analyze', { image: huge, mimeType: 'image/png' }))?.status).toBe(413);
   });
 
+  it('accepts padded base64 images with the exact decoded byte count', async () => {
+    const { gemini, call } = setup();
+    for (const image of ['AQ==', 'AAA=', 'AAAAAQ==']) {
+      expect((await call('/api/analyze', { image, mimeType: 'image/png' }))?.status).toBe(200);
+    }
+    expect(gemini!.analyze).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects malformed base64 before invoking the model', async () => {
+    const { gemini, call } = setup();
+    for (const image of [
+      'A', 'AA=', 'AAAA===', 'AAAA?', 'data:image/png;base64,AAAA',
+      'A A A A', 'AAAA\\n', 'AAAA\\r', '-_==',
+    ]) {
+      const response = await read(await call('/api/analyze', { image, mimeType: 'image/png' }));
+      expect(response).toEqual({ status: 400, body: { error: 'Image data must be valid base64.' } });
+    }
+    expect(gemini!.analyze).not.toHaveBeenCalled();
+  });
+
   it('rejects malformed bodies, wrong methods and unknown routes', async () => {
     const { call } = setup();
     expect((await call('/api/analyze', '{not json'))?.status).toBe(400);
