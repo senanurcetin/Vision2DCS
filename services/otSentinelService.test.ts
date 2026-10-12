@@ -32,6 +32,13 @@ describe('runSentinelAudit', () => {
     expect(alerts).toEqual([expect.objectContaining({ tag: 'PRESSURE1', severity: 'error' })]);
   });
 
+  it('validates the canonical parsed tag rather than its raw formatting', () => {
+    expect(messagesFor([inst({ tagName: ' pt101 ' })], ' pt101 ')).toEqual([]);
+    expect(messagesFor([inst({ tagName: 'PT-101AB' })], 'PT-101AB')).toContain(
+      'Non-standard ISA-5.1 naming convention detected. Automation systems may fail to parse this tag.',
+    );
+  });
+
   it('asks for review of unclassified signal or block types', () => {
     expect(messagesFor([inst({ tagName: 'XY-10', signalType: 'Unknown' })], 'XY-10')[0]).toMatch(/could not be classified/);
     expect(messagesFor([inst({ tagName: 'XY-11', pcs7BlockType: 'Unknown' })], 'XY-11')[0]).toMatch(/could not be classified/);

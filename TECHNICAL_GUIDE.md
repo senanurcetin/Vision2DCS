@@ -11,7 +11,7 @@ The core of the application lies in `server/gemini.ts`. Instead of simple OCR, w
 
 All Gemini calls run on the server so the API key never reaches the browser:
 
-- `server/api.ts` is a Web-standard `Request → Response` handler for `POST /api/analyze` and `POST /api/digital-twin`. It validates input (JPEG/PNG/WebP, ≤ 10 MB), applies a per-client rate limit, and maps failures to user-safe messages. A rejected key or missing configuration returns 503, and other upstream errors return 502 without exposing internal details.
+- `server/api.ts` is a Web-standard `Request → Response` handler for `POST /api/analyze` and `POST /api/digital-twin`. It validates input (JPEG/PNG/WebP, ≤ 10 MB), applies a per-client rate limit, periodically removes expired client windows, and maps failures to user-safe messages. A rejected key or missing configuration returns 503, and other upstream errors return 502 without exposing internal details.
 - `server/retry.ts` retries 429 and 5xx responses with exponential backoff.
 - `server/node.ts` adapts the handler to Node's `http` module with a 15 MB body limit. It is mounted by `server/vitePlugin.ts` for `vite` and `vite preview`, and by `server/httpServer.ts` for `npm start`. The production server also serves `dist/` with an SPA fallback.
 - `services/geminiService.ts` is the thin browser client for these routes.
@@ -21,7 +21,7 @@ All Gemini calls run on the server so the API key never reaches the browser:
 Mapping a 2D image back to a node-based graph:
 1. **Loop Parsing**: `services/tagParser.ts` splits a tag into function letters, loop number and suffix. The loop is the first (measured-variable) letter plus the number, so `FT-101` and `FCV-101` share loop `F-101` while `TT-101` is loop `T-101`.
 2. **Grouping and ordering** (`services/topologyLayout.ts`): instruments with the same loop key are clustered into `loopGroup` nodes and ordered by role: measurement first, then controller (`PIDConL` or a `C` after the measured-variable letter, e.g. `FIC`), then final element (valves, AO/DO, motors). The model's own output order no longer decides the layout.
-3. **Signal lines**: each loop is chained in that order, and the model's `connectedTo` links are drawn on top, including links between loops. Partial links never remove the loop chain, and each pair gets a single line.
+3. **Signal lines**: each loop is chained in that order, and the model's `connectedTo` links are drawn on top, including links between loops. Instrument tags and `connectedTo` references use the same canonical identity. Partial links never remove the loop chain, and each pair gets a single line.
 
 ## 🖼 Upload and Persistence
 
@@ -31,7 +31,7 @@ Mapping a 2D image back to a node-based graph:
 ## 🛡 OT-Sentinel Audit Logic
 
 The audit engine (`otSentinelService.ts`) performs these checks:
-1. **Syntactic**: Does the tag match the ISA format `[Letters]-[Number][Suffix]` (e.g. `PT-101A`)?
+1. **Syntactic**: Does the parsed tag conform to ISA naming constraints `[Letters]-[Number][Suffix]` (e.g. `PT-101A`)? Validation canonicalizes case, surrounding whitespace and an optional separator before applying the constraints.
 2. **Classification**: Did the model return a signal or block type that could not be mapped (`Unknown`)? These need manual assignment before export.
 3. **Functional**: Does an analog signal (AI/AO) lack engineering units? Does the description mention a safety function (relief, ESD, interlock...) that needs IEC 61511 / SIL review?
 4. **Topology**: Does a flow loop (`F-...`) contain an analog input but no final control element (an AO signal or a tag whose function letters end in `V`)?

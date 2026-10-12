@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRateLimiter } from './rateLimit';
+import { createRateLimiter, pruneExpiredRateLimitWindows } from './rateLimit';
 
 describe('createRateLimiter', () => {
   it('allows up to the limit per window, per client', () => {
@@ -13,5 +13,16 @@ describe('createRateLimiter', () => {
     expect(allow('a')).toBe(false);
     t = 1000;
     expect(allow('a')).toBe(true);
+  });
+
+  it('removes expired client windows while retaining active windows', () => {
+    const windows = new Map([
+      ['expired', { start: 0, count: 3 }],
+      ['active', { start: 500, count: 1 }],
+    ]);
+
+    pruneExpiredRateLimitWindows(windows, 1000, 1000);
+
+    expect([...windows.keys()]).toEqual(['active']);
   });
 });
