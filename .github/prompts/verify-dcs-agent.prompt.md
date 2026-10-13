@@ -4,7 +4,7 @@ description: Read-only acceptance test for DCS Verification custom agent
 
 # DCS Verification — manual acceptance
 
-Select the DCS Verification custom agent manually in a supported GitHub Copilot IDE. If it is absent, report NOT RUN.
+Agent invocation: use a supported IDE agent selector **or** GitHub Copilot CLI with `--agent=dcs-verification`. CLI agent selection is valid; do not mark this test NOT RUN merely because no IDE selector was used. The wrapper must record the requested agent ID and CLI exit status independently. If the actual loaded profile cannot be independently confirmed, report agent identity UNVERIFIED separately from the source-review checks. Do not infer successful runtime tests from a read-only answer.
 
 Read repository instructions and:
 - services/tagParser.ts
