@@ -12,6 +12,7 @@ const inst = (overrides: Partial<Instrument> = {}): Instrument => ({
   pcs7BlockType: 'MonAnL',
   abb800xaObject: 'AI_Object',
   confidence: 'high',
+  reviewed: true,
   ...overrides,
 });
 
@@ -37,6 +38,13 @@ describe('conceptExportBlockers', () => {
       inst({ id: 'valve', tagName: 'FCV-101', signalType: 'AO', pcs7BlockType: 'VlvAnL', engineeringUnits: '%' }),
     ]);
     expect(reasons).toEqual([]);
+  });
+
+  it('does not accept model confidence or untrusted review flags as engineering approval', () => {
+    const unreviewed = inst({ reviewed: false, confidence: 'high' });
+    expect(conceptExportBlockers([unreviewed]).join(' ')).toMatch(/Explicit human review/);
+    expect(conceptExportBlockers([inst({ reviewed: undefined })]).join(' ')).toMatch(/Explicit human review/);
+    expect(conceptExportBlockers([inst({ reviewed: true })])).toEqual([]);
   });
 
   it('does not confuse warnings with certification, and does not mutate inputs', () => {
