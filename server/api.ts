@@ -1,3 +1,4 @@
+import { decodedBase64Bytes, isValidCanonicalBase64 } from './base64';
 import type { GeminiService } from './gemini';
 import { ModelOutputError } from '../services/normalizeInstruments';
 
@@ -21,12 +22,7 @@ const json = (status: number, body: unknown) =>
 
 const error = (status: number, message: string) => json(status, { error: message });
 
-// Only canonical padded/unpadded base64 groups are accepted. The newline guard
-// is necessary because JavaScript's $ anchor also matches before a final LF.
-const BASE64_IMAGE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const isValidBase64 = (value: string) => BASE64_IMAGE.test(value) && !/[\r\n]/.test(value);
-const decodedSize = (base64: string) => Math.floor((base64.length * 3) / 4)
-  - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
+
 
 const readJson = async (request: Request): Promise<Record<string, unknown> | null> => {
   try {
@@ -64,8 +60,8 @@ export const createApiHandler = ({ getGemini, allowRequest, log = console.error 
           return error(400, 'Unsupported image type. Use JPEG, PNG or WebP.');
         }
         if (typeof image !== 'string' || image.length === 0) return error(400, 'Missing image data.');
-        if (decodedSize(image) > MAX_IMAGE_BYTES) return error(413, 'Image is too large (max 10 MB).');
-        if (!isValidBase64(image)) return error(400, 'Image data must be valid base64.');
+        if (decodedBase64Bytes(image) > MAX_IMAGE_BYTES) return error(413, 'Image is too large (max 10 MB).');
+        if (!isValidCanonicalBase64(image)) return error(400, 'Image data must be valid base64.');
 
         const instruments = await gemini.analyze({ data: image, mimeType });
         return json(200, { instruments });
