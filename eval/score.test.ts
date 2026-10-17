@@ -32,6 +32,16 @@ describe('scoreSample', () => {
     });
   });
 
+  it('rejects contradicting duplicate extracted tags instead of letting order set type accuracy', () => {
+    const expected = [{ tagName: 'PT-101', signalType: 'AI', pcs7BlockType: 'MonAnL' }];
+    const ambiguous = [
+      actual('pt101', 'AI', 'MonAnL'),
+      actual('PT-101', 'AO', 'PIDConL'),
+    ];
+    expect(() => scoreSample(expected, ambiguous)).toThrow('Conflicting extracted instrument tag: PT-101');
+    expect(() => scoreSample(expected, [...ambiguous].reverse())).toThrow('Conflicting extracted instrument tag: PT-101');
+  });
+
   it('counts a duplicated extraction once', () => {
     expect(scoreSample([{ tagName: 'PT-1' }], [actual('PT-1'), actual('PT 1')]).extracted).toBe(1);
   });
