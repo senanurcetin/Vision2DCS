@@ -61,6 +61,18 @@ describe('escapeCsvField', () => {
     expect(escapeCsvField('tab\tseparated')).toBe('"tab\tseparated"');
   });
 
+  it('neutralizes bidi-isolate and control-prefixed spreadsheet formulas', () => {
+    for (const value of [
+      '\u2066=1+1',
+      '\u2069@SUM(A1:A2)',
+      '\u0000+1+1',
+      '\u007F-2',
+      '\u0085=HYPERLINK("https://example.invalid")',
+    ]) {
+      expect(escapeCsvField(value)).toBe("'" + value);
+    }
+  });
+
   it('neutralizes leading spreadsheet formula characters from untrusted input', () => {
     for (const value of [
       '=1+2', '+SUM(A1:A2)', '-1+2', '@SUM(A1:A2)', ' =HYPERLINK("https://example.org")',
