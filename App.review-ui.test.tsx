@@ -92,6 +92,7 @@ describe('instrument review/export DOM acceptance', () => {
       expect(button(label).disabled, label).toBe(true);
     }
     expect(host.textContent).toContain('Explicit human review');
+    expect(host.querySelector<HTMLImageElement>('img[alt^="P&ID drawing:"]')?.className).toContain('max-w-full');
 
     await act(async () => review('Mark PT-101 reviewed').click());
     for (const label of ['SIEMENS PCS7', 'ABB 800xA', 'NEXUS TAG MAP']) {
