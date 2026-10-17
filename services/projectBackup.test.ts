@@ -69,4 +69,14 @@ describe('project backup', () => {
     expect(rest).toEqual([]);
     expect(only).toMatchObject({ tagName: 'XY-1', signalType: 'Unknown', confidence: 'low' });
   });
+  it('rejects more than 2000 imported or exported instruments before normalization', () => {
+    const many = Array.from({ length: 2001 }, () => ({ tagName: 'PT-101' })) as Instrument[];
+    expect(() => serializeProject({ ...project, instruments: many })).toThrow('2000 instrument limit');
+    const text = JSON.stringify({
+      format: 'vision2dcs-project', version: 1,
+      project: { ...project, instruments: many },
+    });
+    expect(() => parseProjectBackup(text, 'new')).toThrow('2000 instrument limit');
+  });
+
 });
