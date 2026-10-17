@@ -25,7 +25,7 @@ const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
         <div className="space-y-2">
           {issues.length === 0 ? (
             <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm font-medium">
-              No critical safety or standard violations detected.
+              No safety-warning fields flagged in the current data. This is not a certified safety or standards audit.
             </div>
           ) : (
             issues.map(inst => (
