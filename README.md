@@ -125,3 +125,10 @@ This is a human-in-the-loop **concept-generation tool**, not a validated PLC/DCS
 ## License
 
 MIT
+
+
+### Offline engineering acceptance regression
+
+The `services/engineeringAcceptance.test.ts` suite exercises the **complete pure-data path** that supports the UI: an AI-created row starts unreviewed; an explicit local Review click can unlock conceptual export; creating a backup and importing it into a new project clears any asserted approval; changing a reviewed instrument invalidates that approval; and canonical duplicates prevent export. It also tests 12 MiB of valid inline image data and rejects malformed, remote and SVG image payloads. The backup image validator uses the shared linear-time canonical base64 scanner, avoiding a large regex on untrusted backups.
+
+Run `npm test` for these offline checks. This is **not** a claim of real-browser keyboard/screenshot QA, paid Gemini accuracy, authenticated engineer sign-off, Siemens/ABB vendor import acceptance or actual plant control. Those remain separate release gates.
