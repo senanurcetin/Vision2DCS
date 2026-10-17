@@ -10,6 +10,14 @@ const VERSION = 1;
 // A 25 MiB source drawing expands to about 33.4 MiB as a base64 data URL.
 // This cap covers a normal image and metadata but prevents unbounded JSON imports.
 export const MAX_PROJECT_BACKUP_BYTES = 48 * 1024 * 1024;
+// Keep backup import/export bounded even when an untrusted JSON file contains
+// millions of tiny rows that fit below the byte limit.
+export const MAX_PROJECT_BACKUP_INSTRUMENTS = 2000;
+const assertBackupInstrumentCount = (value: unknown): void => {
+  if (!Array.isArray(value) || value.length > MAX_PROJECT_BACKUP_INSTRUMENTS) {
+    throw new Error('Project backup exceeds the 2000 instrument limit.');
+  }
+};
 export const assertProjectBackupBytes = (bytes: number): void => {
   if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > MAX_PROJECT_BACKUP_BYTES) {
     throw new Error('Project backup exceeds the 48 MiB limit.');
@@ -21,8 +29,10 @@ const checkedBackupText = (text: string): string => {
   return text;
 };
 
-export const serializeProject = (project: AnalysisProject): string =>
-  checkedBackupText(JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2));
+export const serializeProject = (project: AnalysisProject): string => {
+  assertBackupInstrumentCount(project.instruments);
+  return checkedBackupText(JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2));
+};
 
 // Only inline images may reach <img src> and the twin download <a href>;
 // anything else (javascript:, remote URLs) from a shared file is dropped.
@@ -52,6 +62,7 @@ export const parseProjectBackup = (text: string, newId: string): AnalysisProject
   if (envelope?.format !== FORMAT) throw new Error('The file is not a Vision2DCS project backup.');
   if (envelope.version !== VERSION) throw new Error(`Unsupported backup version: ${String(envelope.version)}.`);
   if (!isProject(envelope.project)) throw new Error('The backup does not contain a valid project.');
+  assertBackupInstrumentCount(envelope.project.instruments);
 
   const project = envelope.project;
   const twin = safeImage(project.digitalTwinUrl);
