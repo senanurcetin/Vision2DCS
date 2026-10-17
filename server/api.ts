@@ -5,6 +5,8 @@ export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 // Decoded image size accepted by /api/analyze. The HTTP body limit sits above this.
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_TWIN_INSTRUMENTS = 200;
+const MAX_TWIN_TAG_CHARS = 64;
+const MAX_TWIN_DESCRIPTION_CHARS = 500;
 
 export interface ApiDeps {
   /** Returns the Gemini service, or null when the server has no API key. */
@@ -73,10 +75,24 @@ export const createApiHandler = ({ getGemini, allowRequest, log = console.error 
       if (!Array.isArray(instruments) || instruments.length === 0) {
         return error(400, 'Provide at least one instrument.');
       }
-      const summary = instruments.slice(0, MAX_TWIN_INSTRUMENTS).map(i => ({
-        tagName: String((i as Record<string, unknown>)?.tagName ?? ''),
-        description: String((i as Record<string, unknown>)?.description ?? ''),
-      }));
+      if (instruments.length > MAX_TWIN_INSTRUMENTS) {
+        // Never silently omit equipment from an engineering drawing.
+        return error(413, 'Too many instruments (max 200).');
+      }
+      const summary: Array<{ tagName: string; description: string }> = [];
+      for (const instrument of instruments) {
+        if (!instrument || typeof instrument !== 'object' || Array.isArray(instrument)) {
+          return error(400, 'Each instrument must be an object.');
+        }
+        const { tagName, description } = instrument as Record<string, unknown>;
+        if (typeof tagName !== 'string' || !tagName.trim() || tagName.length > MAX_TWIN_TAG_CHARS) {
+          return error(400, 'Each instrument needs a tag name (max 64 characters).');
+        }
+        if (typeof description !== 'string' || description.length > MAX_TWIN_DESCRIPTION_CHARS) {
+          return error(400, 'Each instrument needs a description (max 500 characters).');
+        }
+        summary.push({ tagName, description });
+      }
       const imageUrl = await gemini.digitalTwin(summary);
       return json(200, { imageUrl });
     } catch (e) {
