@@ -4,7 +4,7 @@
  *
  *   npm run eval            (reads GEMINI_API_KEY from the env or .env.local)
  */
-import { readdir, readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { loadEnv } from 'vite';
@@ -12,6 +12,7 @@ import { readServerConfig } from '../server/config';
 import { createGeminiService } from '../server/gemini';
 import { ExpectedInstrument, SampleScore, scoreSample, summarize } from './score';
 import { BenchmarkSample, buildBenchmarkReport } from './report';
+import { saveBenchmarkReport } from './reportFiles';
 
 const samplesDir = path.resolve('samples');
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
@@ -60,10 +61,9 @@ const main = async () => {
   // provider key. Never run paid inference from CI or fabricate benchmark scores.
   const report = buildBenchmarkReport(config.analysisModel, recordedSamples, new Date().toISOString());
   const reportDir = path.resolve('eval/results');
-  await mkdir(reportDir, { recursive: true });
-  const reportFile = path.join(reportDir, 'latest.json');
-  await writeFile(reportFile, JSON.stringify(report, null, 2) + '\n', 'utf8');
-  console.log(`Reproducible benchmark evidence: ${reportFile}`);
+  const saved = await saveBenchmarkReport(reportDir, report);
+  console.log(`Historical benchmark evidence: ${saved.historyFile}`);
+  console.log(`Most recent benchmark evidence: ${saved.latestFile}`);
 };
 
 main().catch(error => {

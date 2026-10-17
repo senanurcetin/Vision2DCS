@@ -84,11 +84,11 @@ GEMINI_API_KEY=... npm start
 npm run eval
 ```
 
-The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. On successful completion it also writes **`eval/results/latest.json`** with model identifier, timestamp, per-sample input SHA-256 hashes and microaveraged metrics, so successive results can be inspected against the exact source drawings and labels. This file is ignored by Git and is **not** a synthetic score or automatic CI output. Running `npm run eval` makes real, potentially billable Gemini calls; it requires `GEMINI_API_KEY` and is not part of CI. CI tests only the offline report builder and validates that sample fixtures remain well-formed. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
+The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. On successful completion it retains a unique report in **`eval/results/runs/`** and atomically updates **`eval/results/latest.json`** with model identifier, timestamp, per-sample input SHA-256 hashes and microaveraged metrics, so successive results can be inspected against the exact source drawings and labels. This file is ignored by Git and is **not** a synthetic score or automatic CI output. Running `npm run eval` makes real, potentially billable Gemini calls; it requires `GEMINI_API_KEY` and is not part of CI. CI tests only the offline report builder and validates that sample fixtures remain well-formed. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
 
 ### Compare two real benchmark runs without another Gemini call
 
-Save separate real `eval/results/latest.json` outputs, then compare only **paired, identical sample source revisions**:
+Use two locally retained, real `eval/results/runs/*.json` files. Compare only **paired, identical sample source revisions**:
 
 ```bash
 npm run eval:compare -- eval/results/baseline.json eval/results/candidate.json
