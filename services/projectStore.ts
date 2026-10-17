@@ -6,7 +6,7 @@ type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 export type SaveResult = { ok: true } | { ok: false; reason: 'quota' | 'unavailable' };
 
-const isProject = (value: unknown): value is AnalysisProject => {
+export const isProject = (value: unknown): value is AnalysisProject => {
   const p = value as Partial<AnalysisProject> | null;
   return typeof p === 'object' && p !== null
     && typeof p.id === 'string'

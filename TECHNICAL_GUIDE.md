@@ -49,6 +49,9 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 
 The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely.
 
+## Manual editing and backup
+A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups are capped at 5 MB in the browser, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained; no vendor import claim is implied.
+
 ## 📊 Export Mappings
 
 > **Concept formats.** Both exports are illustrative layouts. They have not been validated against the real Siemens PCS 7 (Import/Export Assistant) or ABB 800xA (Bulk Data Manager) import schemas, so treat them as a starting point for an engineering tool chain, not as files to load into a live system.

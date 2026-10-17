@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { Instrument } from '../types';
-import { buildAbbXml, buildSiemensCsv, escapeCsvField, escapeXml } from './exportService';
+import { buildAbbXml, buildSiemensCsv, buildBomCsv, escapeCsvField, escapeXml } from './exportService';
 
 const inst = (overrides: Partial<Instrument>): Instrument => ({
   id: 'id',
@@ -102,6 +102,23 @@ describe('buildSiemensCsv', () => {
     expect(rows).toHaveLength(3);
     expect(rows[1]).toEqual(['TT-102', tricky.description, 'MonAnL', 'AI', '°C']);
     expect(rows[2]).toEqual(['XY-1', 'Pressure measurement', 'MonAnL', 'AI', '']);
+  });
+});
+
+describe('buildBomCsv', () => {
+  it('neutralizes formula-like vendor fields and preserves cost estimates', () => {
+    const result = buildBomCsv([
+      inst({ tagName: 'PT-101', brand: '=1+1', model: 'Model;A', estimatedCost: 1200 }),
+      inst({ tagName: 'TT-102', estimatedCost: 650.5 }),
+      inst({ tagName: 'XV-1', estimatedCost: Number.NaN }),
+    ]);
+    expect(result).toContain("'=1+1");
+    expect(result).toContain('"Model;A"');
+    expect(result).toContain('Total;;;;1850.5');
+    expect(result).not.toContain('NaN');
+  });
+  it('has an explicit zero total without instruments', () => {
+    expect(buildBomCsv([])).toContain('Total;;;;0');
   });
 });
 

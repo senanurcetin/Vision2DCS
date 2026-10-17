@@ -86,6 +86,9 @@ npm run eval
 
 The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. It calls the real API, so it needs `GEMINI_API_KEY` and is not part of CI. CI does check that the samples stay well-formed. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
 
+## Manual engineering edits and project backup
+The P&ID editor supports review-required low-confidence manual tag entries, spreadsheet-safe estimated BOM CSV export and versioned JSON backups. Imported files are limited to 5 MB in the browser, re-normalized, and stripped of external/SVG image URLs. All vendor CSV/XML formats remain conceptual until verified against vendor import tools.
+
 ## Limitations
 
 - **AI output needs review.** Extracted tags, `connectedTo` links and especially the BOM brands and costs are model estimates, not engineering data. The OT-Sentinel audit flags common problems but is not a substitute for a check by an engineer.
