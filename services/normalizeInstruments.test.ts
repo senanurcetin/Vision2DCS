@@ -67,6 +67,14 @@ describe('normalizeInstrument', () => {
     expect(inst.engineeringUnits).toBe('');
   });
 
+  it('never accepts a provider or imported JSON claim of human review', () => {
+    const source = normalizeInstrument({
+      tagName: 'PT-101', signalType: 'AI', pcs7BlockType: 'MonAnL',
+      confidence: 'high', reviewed: true,
+    }, 0, 'a');
+    expect(source.reviewed).toBe(false);
+  });
+
   it('drops non-numeric costs', () => {
     expect(normalizeInstrument({ estimatedCost: '1200' }, 0, 'p').estimatedCost).toBeUndefined();
     expect(normalizeInstrument({ estimatedCost: Number.NaN }, 0, 'p').estimatedCost).toBeUndefined();
