@@ -69,7 +69,7 @@ describe('escapeCsvField', () => {
       '\u007F-2',
       '\u0085=HYPERLINK("https://example.invalid")',
     ]) {
-      expect(escapeCsvField(value)).toBe("'" + value);
+      expect(parseCsv('Field\\r\\n' + escapeCsvField(value) + '\\r\\n')[1][0]).toBe("'" + value);
     }
   });
 
