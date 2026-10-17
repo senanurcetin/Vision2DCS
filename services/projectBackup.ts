@@ -1,6 +1,8 @@
 import { AnalysisProject } from '../types';
 import { normalizeInstrument } from './normalizeInstruments';
 import { isProject } from './projectStore';
+// Pure linear base64 checker shared with the server-side image API.
+import { isValidCanonicalBase64 } from '../server/base64';
 
 const FORMAT = 'vision2dcs-project';
 const VERSION = 1;
@@ -24,8 +26,15 @@ export const serializeProject = (project: AnalysisProject): string =>
 
 // Only inline images may reach <img src> and the twin download <a href>;
 // anything else (javascript:, remote URLs) from a shared file is dropped.
-const safeImage = (value: unknown): string =>
-  typeof value === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value) ? value : '';
+const safeImage = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  const header = /^data:image\/(?:png|jpeg|webp);base64,/.exec(value);
+  if (!header) return '';
+  // Use linear validation for permitted multi-megabyte image data rather
+  // than running a variable-length regex across a potentially 48 MiB backup.
+  const payload = value.slice(header[0].length);
+  return isValidCanonicalBase64(payload) ? value : '';
+};
 
 /**
  * Reads a backup file. The file is untrusted: the envelope is checked, every
