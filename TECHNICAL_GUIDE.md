@@ -12,6 +12,7 @@ The core of the application lies in `server/gemini.ts`. Instead of simple OCR, w
 All Gemini calls run on the server so the API key never reaches the browser:
 
 - `server/api.ts` is a Web-standard `Request → Response` handler for `POST /api/analyze` and `POST /api/digital-twin`. It validates input (JPEG/PNG/WebP, ≤ 10 MB), applies a per-client rate limit, periodically removes expired client windows, and maps failures to user-safe messages. A rejected key or missing configuration returns 503, and other upstream errors return 502 without exposing internal details.
+- `/api/digital-twin` accepts 1–200 instrument objects containing nonempty string `tagName` (≤64 characters) and string `description` (≤500 characters). It rejects malformed rows or oversized lists without making an AI call; it does **not** silently drop instruments from a requested plant diagram. Only those two fields are forwarded to the model, not BOM costs or other engineering metadata. The endpoint is a conceptual visualization, not a verified DCS design.
 - `server/retry.ts` retries 429 and 5xx responses with exponential backoff.
 - `server/node.ts` adapts the handler to Node's `http` module with a 15 MB body limit. It is mounted by `server/vitePlugin.ts` for `vite` and `vite preview`, and by `server/httpServer.ts` for `npm start`. The production server also serves `dist/` with an SPA fallback.
 - `services/geminiService.ts` is the thin browser client for these routes.
