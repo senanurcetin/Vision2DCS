@@ -126,4 +126,26 @@ describe('instrument review/export DOM acceptance', () => {
     expect(harness.csv).not.toHaveBeenCalled();
     expect(harness.abb).not.toHaveBeenCalled();
   });
+  it('excludes collapsed history controls from focus and exposes an accessible toggle', async () => {
+    harness.project = fixture([instrument]);
+    await act(async () => root.render(<App />));
+    const toggle = host.querySelector<HTMLButtonElement>('button[aria-label="Toggle project history"]');
+    const sidebar = host.querySelector<HTMLElement>('#project-history-sidebar');
+    expect(toggle).not.toBeNull();
+    expect(sidebar?.getAttribute('aria-label')).toBe('Project history');
+    expect(toggle?.getAttribute('aria-controls')).toBe('project-history-sidebar');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(sidebar?.getAttribute('aria-hidden')).toBe('true');
+    expect(sidebar?.hasAttribute('inert')).toBe(true);
+
+    await act(async () => toggle!.click());
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(sidebar?.getAttribute('aria-hidden')).toBe('false');
+    expect(sidebar?.hasAttribute('inert')).toBe(false);
+
+    await act(async () => toggle!.click());
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(sidebar?.hasAttribute('inert')).toBe(true);
+  });
+
 });
