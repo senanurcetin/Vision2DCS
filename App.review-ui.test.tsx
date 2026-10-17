@@ -148,4 +148,13 @@ describe('instrument review/export DOM acceptance', () => {
     expect(sidebar?.hasAttribute('inert')).toBe(true);
   });
 
+  it('shows NEXUS branding and responsive engineering panels', async () => {
+    harness.project = fixture([instrument]);
+    await act(async () => root.render(<App />));
+    expect(host.querySelector<HTMLImageElement>('img[alt="NEXUS"]')?.getAttribute('src')).toBe('/nexus-wordmark.svg');
+    expect(host.querySelector<HTMLImageElement>('img[aria-hidden="true"]')?.getAttribute('src')).toBe('/nexus-x.svg');
+    expect(host.querySelector('header')?.className).toContain('nexus-app-header');
+    expect(host.querySelector('.nexus-engineering-panel')?.className).toContain('lg:w-1/2');
+  });
+
 });

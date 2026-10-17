@@ -16,3 +16,15 @@ body { font-family: 'Inter', sans-serif; }
 .react-flow__pane { background: #0f172a; }
 .react-flow__handle { background: #475569; width: 6px; height: 6px; border: 1px solid #1e293b; }
 .react-flow__edge-path { stroke: #334155; stroke-width: 2; }
+
+/* NEXUS 2.0 official identity from Google Drive Logo/NEXUS_Identity_2_0. */
+:root { color-scheme: dark; --nexus-midnight:#0B0F19;--nexus-navy:#061524;--nexus-cyan:#00E0FF;--nexus-blue:#4EA8FF;--nexus-lavender:#8F9BFF;--nexus-violet:#6E55C6;--nexus-silver:#B9C5CE; }
+.nexus-app { color:#E5F1FA; background:radial-gradient(circle at 91% -12%,rgba(110,85,198,.17),transparent 34%),radial-gradient(circle at -8% 78%,rgba(0,224,255,.07),transparent 40%),var(--nexus-midnight); }
+.nexus-app-header { border-color:rgba(78,168,255,.27);background:linear-gradient(108deg,#061524 0%,#10253C 62%,#191B35 100%);box-shadow:0 12px 36px rgba(0,0,0,.23); }
+.nexus-brand-mark { background:linear-gradient(135deg,rgba(0,224,255,.13),rgba(110,85,198,.15)); }
+.nexus-primary-action { background:linear-gradient(105deg,#00E0FF 0%,#4EA8FF 63%,#8F9BFF 100%);border:1px solid rgba(185,197,206,.36); }
+.nexus-primary-action:hover { filter:brightness(1.10); }
+.nexus-engineering-panel { border-color:rgba(78,168,255,.16);background:#0D1C30; }
+.nexus-view-switch { border:1px solid rgba(78,168,255,.23); }
+.nexus-app :focus-visible { outline:2px solid var(--nexus-cyan);outline-offset:3px; }
+@media(prefers-reduced-motion:reduce) { .nexus-app *, .nexus-app *::before, .nexus-app *::after { animation-duration:.01ms!important;transition-duration:.01ms!important; } }

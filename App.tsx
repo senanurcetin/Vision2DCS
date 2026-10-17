@@ -152,25 +152,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-slate-950">
-      <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md z-50">
+    <div className="nexus-app flex h-full min-h-0 flex-col bg-slate-950">
+      <header className="nexus-app-header relative z-50 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 backdrop-blur-md sm:px-6">
         <div className="flex items-center gap-4">
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle project history" aria-expanded={isSidebarOpen} aria-controls="project-history-sidebar" className="p-2 hover:bg-slate-800 rounded-lg text-slate-400">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-            </div>
+            <div className="nexus-brand-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/20"><img src="/nexus-x.svg" alt="" aria-hidden="true" className="h-8 w-8 object-contain" /></div>
             <div>
-              <h1 className="font-bold text-lg leading-tight text-white">Vision2DCS</h1>
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">ISA-5.1 & HP-HMI Core</p>
+              <div className="flex items-center gap-3"><img src="/nexus-wordmark.svg" alt="NEXUS" className="h-9 w-24 object-contain" /><span aria-hidden="true" className="h-8 w-px bg-slate-600/80" /><div><h1 className="font-bold text-base leading-tight text-white sm:text-lg">Vision2DCS</h1><p className="text-[10px] font-bold uppercase tracking-widest text-cyan-200/70">Engineering concept studio</p></div></div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex bg-slate-800 p-1 rounded-lg">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:gap-4">
+          <div className="nexus-view-switch flex flex-wrap rounded-lg bg-slate-800 p-1">
             <button onClick={() => setLeftPanelView('image')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${leftPanelView === 'image' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>P&ID View</button>
             <button onClick={() => setLeftPanelView('draft_hmi')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${leftPanelView === 'draft_hmi' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>HMI Topology</button>
             {currentProject?.digitalTwinUrl && <button onClick={() => setLeftPanelView('twin')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${leftPanelView === 'twin' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>Digital Twin</button>}
@@ -184,7 +181,7 @@ const App: React.FC = () => {
             {isGeneratingTwin ? 'Imagining Twin...' : 'Generate Digital Twin'}
           </button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp" />
-          <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-lg transition-transform active:scale-95">
+          <button onClick={() => fileInputRef.current?.click()} className="nexus-primary-action rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition-transform active:scale-95">
             Process Diagram
           </button>
         </div>
@@ -203,7 +200,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto lg:flex-row">
         <aside id="project-history-sidebar" aria-label="Project history" aria-hidden={!isSidebarOpen} inert={!isSidebarOpen} className={`absolute inset-y-0 left-0 w-80 bg-slate-900 border-r border-slate-800 z-[60] transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
            <div className="p-6 border-b border-slate-800 flex items-center">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">History</h2>
@@ -248,7 +245,7 @@ const App: React.FC = () => {
            </div>
         </aside>
 
-        <div className="w-1/2 bg-slate-950 border-r border-slate-800 overflow-hidden relative">
+        <div className="relative min-h-[320px] w-full shrink-0 overflow-hidden border-b border-slate-800 bg-slate-950 lg:min-h-0 lg:w-1/2 lg:shrink lg:border-b-0 lg:border-r">
           {leftPanelView === 'image' && (
             <div className="h-full relative overflow-auto custom-scrollbar">
               {currentProject ? (
@@ -290,7 +287,7 @@ const App: React.FC = () => {
           </div>}
         </div>
 
-        <div className="w-1/2 flex flex-col bg-slate-900 shadow-2xl z-20">
+        <div className="nexus-engineering-panel z-20 flex min-h-[420px] w-full shrink-0 flex-col bg-slate-900 shadow-2xl lg:min-h-0 lg:w-1/2 lg:shrink">
            <div className="p-6 border-b border-slate-800 bg-slate-900/50">
               <div className="flex justify-between items-center mb-6">
                 <div>
