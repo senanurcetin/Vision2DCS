@@ -16,7 +16,7 @@
     "eval": "vite-node eval/run.ts"
   },
   "dependencies": {
-    "@google/genai": "1.52.0",
+    "@google/genai": "2.29.1",
     "@xyflow/react": "12.12.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
