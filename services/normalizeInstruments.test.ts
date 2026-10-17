@@ -92,6 +92,11 @@ describe('parseInstrumentResponse', () => {
     expect(result.map(i => i.tagName)).toEqual(['PT-2']);
   });
 
+  it('rejects unbounded model instrument arrays without truncation', () => {
+    const excessive = Array.from({ length: 2001 }, () => ({ tagName: 'PT-101' }));
+    expect(() => parseInstrumentResponse(JSON.stringify(excessive), 'run')).toThrow('2000 instrument limit');
+  });
+
   it('rejects empty, malformed and non-array responses', () => {
     expect(() => parseInstrumentResponse(undefined, 'run')).toThrow('No data returned from AI');
     expect(() => parseInstrumentResponse('{not json', 'run')).toThrow('malformed JSON');
