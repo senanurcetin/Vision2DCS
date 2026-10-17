@@ -1,5 +1,5 @@
 import { Instrument, SentinelAlert } from '../types';
-import { getLoopKey, isValidIsaTag, isValveTag } from './tagParser';
+import { canonicalizeTag, getLoopKey, isValidIsaTag, isValveTag } from './tagParser';
 
 const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'esdv', 'interlock'];
 
@@ -10,8 +10,24 @@ const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'es
 export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => {
   const alerts: SentinelAlert[] = [];
   const loopMap = new Map<string, Instrument[]>();
+  const seenTags = new Set<string>();
 
   instruments.forEach(inst => {
+    // Canonical identities must be unique even when the model varies case,
+    // spaces or the separator (FT101 / FT-101 / ft 101).
+    const canonicalTag = canonicalizeTag(inst.tagName) ?? inst.tagName.trim().toUpperCase();
+    if (canonicalTag) {
+      if (seenTags.has(canonicalTag)) {
+        alerts.push({
+          tag: inst.tagName,
+          severity: 'error',
+          message: `Duplicate instrument tag ${canonicalTag}. Review conflicting rows before using exports.`
+        });
+      } else {
+        seenTags.add(canonicalTag);
+      }
+    }
+
     // 1. Syntactic: ISA-5.1 tag naming
     if (!isValidIsaTag(inst.tagName)) {
       alerts.push({

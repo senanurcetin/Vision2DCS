@@ -34,6 +34,7 @@ Mapping a 2D image back to a node-based graph:
 The audit engine (`otSentinelService.ts`) performs these checks:
 1. **Syntactic**: Does the parsed tag conform to ISA naming constraints `[Letters]-[Number][Suffix]` (e.g. `PT-101A`)? Validation canonicalizes case, surrounding whitespace and an optional separator before applying the constraints.
 2. **Classification**: Did the model return a signal or block type that could not be mapped (`Unknown`)? These need manual assignment before export.
+5. **Duplicate identity**: Canonicalized instrument tags (case, optional separators/whitespace) must be unique across the project; repeated equipment identities receive an error before anyone relies on the conceptual exports. The audit does not claim a SIL/standards certification.
 3. **Functional**: Does an analog signal (AI/AO) lack engineering units? Does the description mention a safety function (relief, ESD, interlock...) that needs IEC 61511 / SIL review?
 4. **Topology**: Does a flow loop (`F-...`) contain an analog input but no final control element (an AO signal or a tag whose function letters end in `V`)?
 
