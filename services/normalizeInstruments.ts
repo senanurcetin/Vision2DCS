@@ -62,6 +62,8 @@ export const parseInstrumentResponse = (text: string | undefined, idPrefix: stri
     throw new ModelOutputError("AI returned malformed JSON");
   }
   if (!Array.isArray(raw)) throw new ModelOutputError("AI response is not a list of instruments");
+  // Never silently truncate model output or allocate an unbounded engineering table.
+  if (raw.length > 2000) throw new ModelOutputError("AI response exceeds the 2000 instrument limit");
 
   return raw
     .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && !Array.isArray(item))
