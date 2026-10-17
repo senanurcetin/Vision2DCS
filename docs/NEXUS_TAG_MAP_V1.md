@@ -28,6 +28,12 @@ This document specifies the **first shared industrial data contract** for the NE
 }
 ```
 
+## Compatibility limits (matched to Ops-Copilot v1)
+
+The exporter refuses files its independent reader would reject: maximum **1 MiB UTF-8 JSON**, **2,000 distinct tags**, project IDs 1–128 characters with only ASCII letters/digits/dot/underscore/colon/hyphen, project titles up to 500 characters, description up to 1,000 and engineering units up to 100 characters, and strict canonical UTC ISO timestamps. Control and bidirectional override characters are prohibited in human-readable fields.
+
+A generated file can be opened locally at Ops-Copilot's `/developer-tools/nexus-tag-map` without a server upload. This is **local file viewing**, not a certified industrial handshake or live three-product synchronization.
+
 ## Reader requirements
 
 - Treat every imported file as **untrusted**, even if it claims local review. Validate the schema identifier, version, input size, tag syntax/uniqueness, types and origin before use.
