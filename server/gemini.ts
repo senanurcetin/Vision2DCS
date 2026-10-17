@@ -95,12 +95,23 @@ export const createGeminiService = (config: ServerConfig & { apiKey: string }): 
       config: { imageConfig: { aspectRatio: "16:9" } }
     }));
 
+    // SDK responses are external data, not trusted URLs. Never expose data:text/html,
+    // SVG, invalid base64, or unbounded inline blobs to the engineering browser.
+    const MAX_RENDER_BYTES = 12 * 1024 * 1024;
+    const rasterTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    const base64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
     for (const part of response.candidates?.[0]?.content?.parts ?? []) {
-      if (part.inlineData?.data) {
-        return `data:${part.inlineData.mimeType ?? 'image/png'};base64,${part.inlineData.data}`;
-      }
+      const mimeType = part.inlineData?.mimeType;
+      const data = part.inlineData?.data;
+      if (!mimeType || !rasterTypes.has(mimeType) || !data) continue;
+      // Check the raw length BEFORE a regex or decoder touches a potentially huge
+      // external model response (large regex input can exhaust the JS stack).
+      if (data.length > Math.ceil(MAX_RENDER_BYTES * 4 / 3) + 4) continue;
+      const decodedBytes = Math.floor(data.length * 3 / 4) - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
+      if (decodedBytes > MAX_RENDER_BYTES || !base64.test(data)) continue;
+      return `data:${mimeType};base64,${data}`;
     }
-    throw new ModelOutputError("No image generated");
+    throw new ModelOutputError("No valid raster image generated");
   };
 
   return { analyze, digitalTwin };
