@@ -10,6 +10,7 @@ import { normalizeInstrument } from './services/normalizeInstruments';
 import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
 import { conceptExportBlockers } from './services/conceptExportGate';
+import { buildReviewedTagMap } from './services/nexusTagMap';
 import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
@@ -299,6 +300,22 @@ const App: React.FC = () => {
                 <div className="flex gap-2">
                   <button disabled={conceptExportDisabled} title={exportBlockers[0] ?? 'Unverified Siemens-style concept export'} onClick={() => { if (!conceptExportDisabled && currentProject) downloadSiemensCSV(currentProject.instruments, currentProject.name); }} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">SIEMENS PCS7</button>
                   <button disabled={conceptExportDisabled} title={exportBlockers[0] ?? 'Unverified ABB-style concept export'} onClick={() => { if (!conceptExportDisabled && currentProject) downloadABBXML(currentProject.instruments, currentProject.name); }} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">ABB 800xA</button>
+                  <button
+                    disabled={conceptExportDisabled}
+                    title={exportBlockers[0] ?? 'Offline read-only human-reviewed NEXUS contract'}
+                    onClick={() => {
+                      if (!currentProject || conceptExportDisabled) return;
+                      try {
+                        const contract = buildReviewedTagMap(currentProject, new Date().toISOString());
+                        downloadText(JSON.stringify(contract, null, 2) + '\n', 'nexus-tag-map-v1.json', 'application/json');
+                      } catch (error) {
+                        setErrorMessage(error instanceof Error ? error.message : 'Tag-map export failed.');
+                      }
+                    }}
+                    className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-cyan-400 hover:text-cyan-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    NEXUS TAG MAP
+                  </button>
                 </div>
               </div>
 
