@@ -7,7 +7,7 @@ import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin } from './services/geminiService';
 import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText } from './services/exportService';
 import { normalizeInstrument } from './services/normalizeInstruments';
-import { parseProjectBackup, serializeProject } from './services/projectBackup';
+import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
@@ -110,15 +110,21 @@ const App: React.FC = () => {
     }));
   }, [currentProjectId, updateProject]);
 
-  const exportBackup = (project: AnalysisProject) =>
-    downloadText(serializeProject(project), `${project.name}.vision2dcs.json`, 'application/json');
+  const exportBackup = (project: AnalysisProject) => {
+    try {
+      downloadText(serializeProject(project), `${project.name}.vision2dcs.json`, 'application/json');
+      setErrorMessage(null);
+    } catch (err) {
+      setErrorMessage(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
 
   const importBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
     try {
-      if (file.size > 5 * 1024 * 1024) throw new Error('Backup file exceeds 5 MB.');
+      assertProjectBackupBytes(file.size);
       addProject(parseProjectBackup(await file.text(), `proj-${Date.now()}`));
       setErrorMessage(null);
       setIsSidebarOpen(false);
