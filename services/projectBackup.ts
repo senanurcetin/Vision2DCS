@@ -2,7 +2,7 @@ import { AnalysisProject } from '../types';
 import { normalizeInstrument } from './normalizeInstruments';
 import { isProject } from './projectStore';
 // Pure linear base64 checker shared with the server-side image API.
-import { isValidCanonicalBase64 } from '../server/base64';
+import { isValidCanonicalBase64 } from './base64';
 
 const FORMAT = 'vision2dcs-project';
 const VERSION = 1;
