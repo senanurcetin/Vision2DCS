@@ -6,9 +6,11 @@ interface Props {
   instruments: Instrument[];
   onUpdate: (id: string, updates: Partial<Instrument>) => void;
   onDelete: (id: string) => void;
+  /** Present when a project is open; adds a blank row for manual entry. */
+  onAdd?: () => void;
 }
 
-const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete }) => {
+const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete, onAdd }) => {
   const signalTypes: SignalType[] = ['AI', 'AO', 'DI', 'DO', 'Unknown'];
   const blockTypes: PCS7BlockType[] = ['MonAnL', 'MonDiL', 'MotL', 'VlvL', 'VlvAnL', 'PIDConL', 'Unknown'];
 
@@ -101,6 +103,18 @@ const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete }) =
             ))
           )}
         </tbody>
+        {onAdd && (
+          <tfoot>
+            <tr>
+              <td colSpan={6} className="px-5 py-3 border-t border-slate-800">
+                <button onClick={onAdd} className="flex items-center gap-2 text-[11px] font-bold text-blue-400 hover:text-blue-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                  Add instrument
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );

@@ -61,6 +61,30 @@ export const downloadABBXML = (instruments: Instrument[], filename: string) => {
   downloadFile(blob, `${filename}_ABB_800xA.xml`);
 };
 
+
+/** Conceptual estimated BOM; all text reuses the existing formula-safe CSV encoding. */
+export const buildBomCsv = (instruments: Instrument[]): string => {
+  let total = 0;
+  const rows = instruments.map(i => {
+    const cost = typeof i.estimatedCost === 'number' && Number.isFinite(i.estimatedCost)
+      ? i.estimatedCost : undefined;
+    if (cost !== undefined) total += cost;
+    return [i.tagName, i.description, i.brand ?? '', i.model ?? '', cost?.toString() ?? ''];
+  });
+  return [
+    ['Tag Name', 'Description', 'Brand', 'Model', 'Estimated Cost (USD)'],
+    ...rows,
+    ['Total', '', '', '', total.toString()],
+  ].map(row => row.map(escapeCsvField).join(';')).join('\r\n') + '\r\n';
+};
+
+export const downloadBomCSV = (instruments: Instrument[], filename: string) =>
+  downloadText('\uFEFF' + buildBomCsv(instruments), filename + '_BOM.csv', 'text/csv');
+
+export const downloadText = (content: string, filename: string, mimeType: string) => {
+  downloadFile(new Blob([content], { type: mimeType + ';charset=utf-8;' }), filename);
+};
+
 const downloadFile = (blob: Blob, filename: string) => {
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
