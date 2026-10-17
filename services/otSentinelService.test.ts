@@ -85,6 +85,18 @@ describe('runSentinelAudit', () => {
     expect(alerts).toEqual([expect.objectContaining({ tag: 'Loop F-200', severity: 'info' })]);
   });
 
+  it('does not mistake an AO controller output for a final control valve', () => {
+    const alerts = runSentinelAudit([
+      inst({ tagName: 'FT-205', engineeringUnits: 'm3/h' }),
+      inst({ tagName: 'FIC-205', signalType: 'AO', pcs7BlockType: 'PIDConL', engineeringUnits: '%' }),
+    ]);
+    expect(alerts).toEqual([expect.objectContaining({
+      tag: 'Loop F-205',
+      severity: 'info',
+      message: expect.stringContaining('without a final valve-function tag'),
+    })]);
+  });
+
   it('does not count a valve from another variable with the same number', () => {
     const alerts = runSentinelAudit([
       inst({ tagName: 'FT-300', engineeringUnits: 'm3/h' }),
