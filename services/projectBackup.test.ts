@@ -33,6 +33,12 @@ describe('project backup', () => {
     expect(restored).toMatchObject({ ...project, id: 'proj-2', instruments: [{ ...instrument, id: 'proj-2-inst-0' }] });
   });
 
+  it('discards an imported project claiming its instruments were already reviewed', () => {
+    const tampered = { ...project, instruments: [{ ...instrument, reviewed: true }] };
+    const imported = parseProjectBackup(serializeProject(tampered), 'reimport');
+    expect(imported.instruments[0].reviewed).toBe(false);
+  });
+
   it('rejects files that are not Vision2DCS backups', () => {
     expect(() => parseProjectBackup('{oops', 'x')).toThrow('not valid JSON');
     expect(() => parseProjectBackup('{"format":"other"}', 'x')).toThrow('not a Vision2DCS project backup');
