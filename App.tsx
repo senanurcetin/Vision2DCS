@@ -9,6 +9,7 @@ import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText } from
 import { normalizeInstrument } from './services/normalizeInstruments';
 import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
+import { conceptExportBlockers } from './services/conceptExportGate';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
 
@@ -32,6 +33,11 @@ const App: React.FC = () => {
     if (!currentProject) return [];
     return runSentinelAudit(currentProject.instruments);
   }, [currentProject?.instruments]);
+  const exportBlockers = useMemo(
+    () => conceptExportBlockers(currentProject?.instruments ?? []),
+    [currentProject?.instruments],
+  );
+  const conceptExportDisabled = !currentProject || exportBlockers.length > 0;
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -290,11 +296,16 @@ const App: React.FC = () => {
                   <p className="text-[10px] text-slate-500 font-bold uppercase">{currentProject?.instruments.length || 0} Extraction Nodes</p>
                 </div>
                 <div className="flex gap-2">
-                  <button disabled={!currentProject} onClick={() => downloadSiemensCSV(currentProject!.instruments, currentProject!.name)} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors">SIEMENS PCS7</button>
-                  <button disabled={!currentProject} onClick={() => downloadABBXML(currentProject!.instruments, currentProject!.name)} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors">ABB 800xA</button>
+                  <button disabled={conceptExportDisabled} title={exportBlockers[0] ?? 'Unverified Siemens-style concept export'} onClick={() => { if (!conceptExportDisabled && currentProject) downloadSiemensCSV(currentProject.instruments, currentProject.name); }} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">SIEMENS PCS7</button>
+                  <button disabled={conceptExportDisabled} title={exportBlockers[0] ?? 'Unverified ABB-style concept export'} onClick={() => { if (!conceptExportDisabled && currentProject) downloadABBXML(currentProject.instruments, currentProject.name); }} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">ABB 800xA</button>
                 </div>
               </div>
 
+              {currentProject && exportBlockers.length > 0 && (
+                <div role="status" className="mb-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
+                  Concept exports disabled: {exportBlockers[0]} Resolve critical tag and classification errors before download.
+                </div>
+              )}
               <div className="flex gap-6 border-b border-slate-800">
                  {['list', 'bom'].map(tab => (
                    <button key={tab} onClick={() => setActiveTab(tab as TabView)} className={`pb-2 text-[11px] font-bold uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-blue-400' : 'text-slate-500'}`}>
