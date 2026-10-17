@@ -5,8 +5,22 @@ import { isProject } from './projectStore';
 const FORMAT = 'vision2dcs-project';
 const VERSION = 1;
 
+// A 25 MiB source drawing expands to about 33.4 MiB as a base64 data URL.
+// This cap covers a normal image and metadata but prevents unbounded JSON imports.
+export const MAX_PROJECT_BACKUP_BYTES = 48 * 1024 * 1024;
+export const assertProjectBackupBytes = (bytes: number): void => {
+  if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > MAX_PROJECT_BACKUP_BYTES) {
+    throw new Error('Project backup exceeds the 48 MiB limit.');
+  }
+};
+
+const checkedBackupText = (text: string): string => {
+  assertProjectBackupBytes(new TextEncoder().encode(text).byteLength);
+  return text;
+};
+
 export const serializeProject = (project: AnalysisProject): string =>
-  JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2);
+  checkedBackupText(JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2));
 
 // Only inline images may reach <img src> and the twin download <a href>;
 // anything else (javascript:, remote URLs) from a shared file is dropped.
@@ -18,6 +32,7 @@ const safeImage = (value: unknown): string =>
  * instrument is re-normalized and the project gets a fresh id.
  */
 export const parseProjectBackup = (text: string, newId: string): AnalysisProject => {
+  assertProjectBackupBytes(new TextEncoder().encode(text).byteLength);
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
