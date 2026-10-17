@@ -47,7 +47,20 @@ export const scoreSample = (expected: ExpectedInstrument[], actual: ExtractedIns
     expectedTags.add(tag);
   }
 
-  const actualByTag = new Map(actual.map(a => [canonicalTag(a.tagName), a]));
+  // Repeated identical detections count once, but contradictory duplicates
+  // cannot silently overwrite one another based on model output ordering.
+  const actualByTag = new Map<string, ExtractedInstrument>();
+  for (const instrument of actual) {
+    const tag = canonicalTag(instrument.tagName);
+    const previous = actualByTag.get(tag);
+    if (previous && (
+      previous.signalType !== instrument.signalType ||
+      previous.pcs7BlockType !== instrument.pcs7BlockType
+    )) {
+      throw new Error(`Conflicting extracted instrument tag: ${tag}`);
+    }
+    if (!previous) actualByTag.set(tag, instrument);
+  }
 
   let signalCorrect = 0;
   let blockCorrect = 0;
