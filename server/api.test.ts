@@ -106,6 +106,50 @@ describe('createApiHandler', () => {
     expect(result).toEqual({ status: 503, body: { error: "The server's GEMINI_API_KEY was rejected by the AI service." } });
   });
 
+  it('rejects oversized digital-twin instrument arrays instead of silently dropping equipment', async () => {
+    const { gemini, call } = setup();
+    const instruments = Array.from({ length: 201 }, (_, n) => ({
+      tagName: `PT-${n + 1}`, description: 'Pressure',
+    }));
+    expect(await read(await call('/api/digital-twin', { instruments }))).toEqual({
+      status: 413,
+      body: { error: 'Too many instruments (max 200).' },
+    });
+    expect(gemini!.digitalTwin).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed and unbounded digital-twin metadata before calling the model', async () => {
+    const { gemini, call } = setup();
+    for (const invalid of [
+      null,
+      ['PT-101'],
+      12,
+      { tagName: '', description: 'Pressure' },
+      { tagName: '   ', description: 'Pressure' },
+      { tagName: 101, description: 'Pressure' },
+      { tagName: 'P'.repeat(65), description: 'Pressure' },
+      { tagName: 'PT-101' },
+      { tagName: 'PT-101', description: null },
+      { tagName: 'PT-101', description: 'd'.repeat(501) },
+    ]) {
+      const response = await call('/api/digital-twin', { instruments: [invalid] });
+      expect(response?.status).toBe(400);
+    }
+    expect(gemini!.digitalTwin).not.toHaveBeenCalled();
+  });
+
+  it('accepts the full digital-twin instrument limit without truncation', async () => {
+    const { gemini, call } = setup();
+    const instruments = Array.from({ length: 200 }, (_, n) => ({
+      tagName: `PT-${n + 1}`, description: 'Pressure', estimatedCost: 99,
+    }));
+    expect((await call('/api/digital-twin', { instruments }))?.status).toBe(200);
+    const forwarded = vi.mocked(gemini!.digitalTwin).mock.calls[0][0];
+    expect(forwarded).toHaveLength(200);
+    expect(forwarded.at(-1)).toEqual({ tagName: 'PT-200', description: 'Pressure' });
+    expect(forwarded[0]).not.toHaveProperty('estimatedCost');
+  });
+
   it('generates a digital twin from tag names and descriptions only', async () => {
     const { gemini, call } = setup();
     const result = await read(await call('/api/digital-twin', {
