@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 dist-server
+# Benchmark output from user-initiated paid model evaluation, not committed CI evidence.
+eval/results/
 *.local
 .env
 .env.local
