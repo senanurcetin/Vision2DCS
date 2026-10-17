@@ -51,6 +51,37 @@ describe('NEXUS tag-map schema v1', () => {
 
   it('rejects malformed UTC stamps and project identity', () => {
     expect(() => buildReviewedTagMap(project([tag('a', 'PT-101')]), '2026-10-17')).toThrow('UTC ISO');
-    expect(() => buildReviewedTagMap({ ...project([tag('a', 'PT-101')]), name: ' ' }, '2026-10-17T10:00:00.000Z')).toThrow('named project');
+    expect(() => buildReviewedTagMap({ ...project([tag('a', 'PT-101')]), name: ' ' }, '2026-10-17T10:00:00.000Z')).toThrow('valid project ID');
+    expect(() => buildReviewedTagMap(project([tag('a', 'PT-101')]), '2026-02-30T10:00:00.000Z')).toThrow('UTC ISO');
+    for (const id of ['../tenant', 'a/b', '__/other', ' '.repeat(3), 'x'.repeat(129)]) {
+      expect(() => buildReviewedTagMap({ ...project([tag('a', 'PT-101')]), id }, '2026-10-17T10:00:00.000Z')).toThrow();
+    }
+    for (const name of ['x'.repeat(501), 'Pump\u202EHidden']) {
+      expect(() => buildReviewedTagMap({ ...project([tag('a', 'PT-101')]), name }, '2026-10-17T10:00:00.000Z')).toThrow();
+    }
+
+  });
+
+  it('rejects receiver-incompatible control text, oversized units and descriptions', () => {
+    const cases: Partial<Instrument>[] = [
+      { description: 'PLC\u202Eoverride' },
+      { engineeringUnits: 'foo\u0000bar' },
+      { engineeringUnits: 'x'.repeat(101) },
+      { description: 'x'.repeat(1001) },
+    ];
+    for (const item of cases) {
+      expect(() => buildReviewedTagMap(project([tag('t', 'PT-101', item)]), '2026-10-17T10:00:00.000Z'))
+        .toThrow('unsupported description or engineering unit');
+    }
+  });
+
+  it('limits instrument counts and total serialized bytes to the receiving schema', () => {
+    const timestamp = '2026-10-17T10:00:00.000Z';
+    const large = Array.from({ length: 1200 }, (_, i) =>
+      tag(String(i), 'PT-' + String(10000 + i), { description: 'A'.repeat(1000) }));
+    expect(() => buildReviewedTagMap(project(large), timestamp)).toThrow('1 MiB');
+    const tooMany = Array.from({ length: 2001 }, (_, i) =>
+      tag(String(i), 'PT-' + String(10000 + i)));
+    expect(() => buildReviewedTagMap(project(tooMany), timestamp)).toThrow('at most 2000');
   });
 });
