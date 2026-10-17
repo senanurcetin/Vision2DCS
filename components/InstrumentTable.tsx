@@ -90,7 +90,17 @@ const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete, onA
                   />
                 </td>
                 <td className="px-5 py-3 align-top text-center">
-                  <button 
+                  <button
+                    type="button"
+                    aria-label={inst.reviewed ? `Revoke review of ${inst.tagName}` : `Mark ${inst.tagName} reviewed`}
+                    title={inst.reviewed ? 'Local review recorded; click to revoke' : 'Mark only after checking this instrument'}
+                    onClick={() => onUpdate(inst.id, { reviewed: !inst.reviewed })}
+                    className={`rounded px-2 py-1 text-[10px] font-bold transition-colors ${inst.reviewed ? 'text-emerald-400 bg-emerald-500/10' : 'text-amber-400 hover:bg-amber-500/10'}`}
+                  >
+                    {inst.reviewed ? 'Reviewed' : 'Review'}
+                  </button>
+                  <button
+                    aria-label={`Delete ${inst.tagName}`}
                     onClick={() => onDelete(inst.id)}
                     className="text-slate-600 hover:text-red-500 p-2 transition-colors rounded-lg hover:bg-red-500/10"
                   >

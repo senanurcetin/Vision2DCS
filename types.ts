@@ -19,6 +19,8 @@ export interface Instrument {
   pcs7BlockType: PCS7BlockType;
   abb800xaObject: string;
   confidence: 'high' | 'medium' | 'low';
+  /** Explicit local human review; model confidence is never approval. */
+  reviewed?: boolean;
   // Advanced features
   brand?: string;
   model?: string;

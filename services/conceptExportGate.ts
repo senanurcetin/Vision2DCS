@@ -15,6 +15,9 @@ export function conceptExportBlockers(instruments: Instrument[]): string[] {
     .map(alert => alert.tag + ': ' + alert.message);
 
   for (const instrument of instruments) {
+    if (instrument.reviewed !== true) {
+      blockers.push(instrument.tagName + ': Explicit human review is required before concept export.');
+    }
     if (instrument.signalType === 'Unknown' || instrument.pcs7BlockType === 'Unknown') {
       blockers.push(instrument.tagName + ': Assign a known signal and PCS 7 block type before concept export.');
     }

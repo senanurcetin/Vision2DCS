@@ -41,6 +41,8 @@ export const normalizeInstrument = (item: Record<string, unknown>, index: number
     pcs7BlockType: pcs7BlockType ?? 'Unknown',
     abb800xaObject: asString(item.abb800xaObject) ?? 'Signal_Object',
     confidence,
+    // Imported data and AI responses never inherit a claimed human approval.
+    reviewed: false,
     brand: asString(item.brand),
     model: asString(item.model),
     estimatedCost: typeof cost === 'number' && Number.isFinite(cost) ? cost : undefined,
