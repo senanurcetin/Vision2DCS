@@ -1,5 +1,7 @@
 # Vision2DCS — P&ID-to-HMI Engineering Assistant
 
+<p align="right"><img src="docs/assets/nexus-official-midnight.svg" alt="Official NEXUS 2.0 Midnight brand logo" width="240"></p>
+
 **Technical reviewer brief:** [System evidence, reproducibility and operational limits](docs/hiring-summary.md).
 
 **React · TypeScript · Gemini multimodal AI · React Flow · Structured instrumentation extraction**
