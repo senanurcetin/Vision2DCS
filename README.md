@@ -6,7 +6,15 @@
 
 Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a structured engineering workflow. It analyzes instrumentation diagrams, drafts tag mappings, and produces visual topology concepts for modern DCS and HMI projects.
 
-![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)
+![NEXUS Vision2DCS engineering workspace (Chromium, synthetic offline fixture)](docs/assets/nexus-workspace-desktop.png)
+
+<sub>Captured from this repository in Chromium, 1440 × 960. The pictured P&ID and tag list are **synthetic offline demonstration fixtures**; no Gemini call or vendor import approval is implied.</sub>
+
+<details><summary>Mobile preview · 390 × 844</summary>
+
+<img src="docs/assets/nexus-workspace-mobile.png" alt="NEXUS Vision2DCS mobile engineering interface with synthetic flow-loop project" width="390">
+
+</details>
 
 Portfolio case study: [senanur-cetin.vercel.app/projects/vision2dcs](https://senanur-cetin.vercel.app/projects/vision2dcs)
 
