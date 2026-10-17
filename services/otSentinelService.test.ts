@@ -27,6 +27,33 @@ describe('runSentinelAudit', () => {
     expect(alerts).toEqual([]);
   });
 
+  it('flags duplicate canonical tag identities from inconsistent P&ID formatting', () => {
+    const instruments = [
+      inst({ id: 'first', tagName: 'FT-101', engineeringUnits: 'm3/h' }),
+      inst({ id: 'second', tagName: ' ft101 ', engineeringUnits: 'm3/h' }),
+      inst({ id: 'valve', tagName: 'FCV-101', signalType: 'AO', pcs7BlockType: 'VlvAnL' }),
+    ];
+    const alerts = runSentinelAudit(instruments);
+    expect(alerts.filter(a => a.message.startsWith('Duplicate instrument tag'))).toEqual([
+      expect.objectContaining({
+        tag: ' ft101 ',
+        severity: 'error',
+        message: expect.stringContaining('FT-101'),
+      }),
+    ]);
+    expect(instruments[1].tagName).toBe(' ft101 ');
+  });
+
+  it('does not confuse distinct valid loop instruments or different numbers', () => {
+    const alerts = runSentinelAudit([
+      inst({ tagName: 'FT-101', engineeringUnits: 'm3/h' }),
+      inst({ tagName: 'FCV-101', signalType: 'AO', pcs7BlockType: 'VlvAnL' }),
+      inst({ tagName: 'PT-101' }),
+      inst({ tagName: 'PT-102' }),
+    ]);
+    expect(alerts.filter(a => a.message.startsWith('Duplicate instrument tag'))).toEqual([]);
+  });
+
   it('flags non-ISA tag names as errors', () => {
     const alerts = runSentinelAudit([inst({ tagName: 'PRESSURE1' })]);
     expect(alerts).toEqual([expect.objectContaining({ tag: 'PRESSURE1', severity: 'error' })]);
