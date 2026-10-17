@@ -103,9 +103,12 @@ export const createGeminiService = (config: ServerConfig & { apiKey: string }): 
     for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       const mimeType = part.inlineData?.mimeType;
       const data = part.inlineData?.data;
-      if (!mimeType || !rasterTypes.has(mimeType) || !data || !base64.test(data)) continue;
+      if (!mimeType || !rasterTypes.has(mimeType) || !data) continue;
+      // Check the raw length BEFORE a regex or decoder touches a potentially huge
+      // external model response (large regex input can exhaust the JS stack).
+      if (data.length > Math.ceil(MAX_RENDER_BYTES * 4 / 3) + 4) continue;
       const decodedBytes = Math.floor(data.length * 3 / 4) - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
-      if (decodedBytes > MAX_RENDER_BYTES) continue;
+      if (decodedBytes > MAX_RENDER_BYTES || !base64.test(data)) continue;
       return `data:${mimeType};base64,${data}`;
     }
     throw new ModelOutputError("No valid raster image generated");
