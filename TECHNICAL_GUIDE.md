@@ -50,6 +50,10 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 
 The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely.
 
+## Gemini SDK 2.x contract and image output
+
+The server uses `@google/genai@2.29.1` with `models.generateContent`, a typed JSON response schema for P&ID tag extraction, and `response.text` for decoding model output. Offline provider-mock contract tests cover both extraction and generated image paths without API credentials. Inline image responses accept only PNG, JPEG or WebP with valid base64 and a 12 MiB decoded payload limit; HTML/SVG outputs are rejected. These tests verify local SDK call shapes and response handling, **not the correctness of real Gemini model predictions**. A genuine, explicitly authorized `npm run eval` benchmark and human review are still required before production acceptance.
+
 ## Manual editing and backup
 A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained; no vendor import claim is implied.
 
