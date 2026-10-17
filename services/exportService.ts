@@ -20,7 +20,7 @@ export const escapeXml = (value: string): string =>
  * This changes suspicious source values by prefixing an apostrophe, so these
  * conceptual exports must still be checked before any vendor-specific import.
  */
-const SPREADSHEET_FORMULA = /^[\s\u200B-\u200F\u202A-\u202E\u2060\uFEFF]*[=+\-@]/u;
+const SPREADSHEET_FORMULA = /^[\s\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]*[=+\-@]/u;
 
 export const escapeCsvField = (value: string): string => {
   const safe = SPREADSHEET_FORMULA.test(value) ? "'" + value : value;
@@ -28,7 +28,7 @@ export const escapeCsvField = (value: string): string => {
 };
 
 export const buildSiemensCsv = (instruments: Instrument[]): string => {
-  // Standard Siemens Import Format (Semicolon separated as requested)
+  // Conceptual Siemens-style CSV only; not verified against vendor IEA import schemas.
   const header = ['Tag Name', 'Description', 'Block Type', 'Signal Type', 'Engineering Units'];
   const rows = instruments.map(i =>
     [i.tagName, i.description, i.pcs7BlockType, i.signalType, i.engineeringUnits].map(escapeCsvField)
