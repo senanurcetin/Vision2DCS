@@ -250,7 +250,7 @@ const App: React.FC = () => {
             <div className="h-full relative overflow-auto custom-scrollbar">
               {currentProject ? (
                 <div className="p-12 min-w-full min-h-full flex items-center justify-center">
-                  <img src={currentProject.imageUrl} alt={`P&ID drawing: ${currentProject.name}`} className="max-w-none shadow-2xl rounded" style={{ transform: `scale(${zoom})` }} />
+                  <img src={currentProject.imageUrl} alt={`P&ID drawing: ${currentProject.name}`} className="max-w-full h-auto shadow-2xl rounded" style={{ transform: `scale(${zoom})` }} />
                 </div>
               ) : <div className="h-full flex items-center justify-center text-slate-700 text-sm italic">No diagram loaded</div>}
               <div className="absolute top-4 left-4 flex bg-slate-900/80 rounded-full border border-slate-700 p-1">
