@@ -9,6 +9,13 @@ updates:
     ignore:
       - dependency-name: "@vitejs/plugin-react"
         update-types: ["version-update:semver-major"]
+      # vite-node@6's Dependabot lockfile fails npm ci; the migration must
+      # accompany the Vitest/Vite toolchain and a regenerated lockfile.
+      - dependency-name: "vite-node"
+        update-types: ["version-update:semver-major"]
+      # jsdom@30 needs Node >=22.22.2 / >=24.15; GitHub CI still runs Node 20.
+      - dependency-name: "jsdom"
+        update-types: ["version-update:semver-major"]
     groups:
       # Patch and minor updates land as one weekly PR; majors stay separate for review
       minor-and-patch:
