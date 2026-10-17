@@ -93,6 +93,7 @@ The P&ID editor supports review-required low-confidence manual tag entries, spre
 
 - **AI output needs review.** Extracted tags, `connectedTo` links and especially the BOM brands and costs are model estimates, not engineering data. The OT-Sentinel audit flags common problems but is not a substitute for a check by an engineer.
 - **Exports are concept formats.** The PCS 7 CSV and 800xA XML are well-formed but have not been validated against the vendors' import tools (#2).
+- **Fail-closed concept export buttons.** The UI blocks Siemens/ABB concept downloads while tag identity errors (including canonical duplicates or invalid ISA-style tag names) or unresolved signal/PCS 7 block classifications remain. Fix the highlighted tags first. A cleared heuristic audit does not prove vendor compatibility, process safety, SIL or ISA certification.
 - **Single-user storage.** Project history lives in the browser's `localStorage`, about 5 MB. A warning appears when it is full.
 - **Single-instance server.** The rate limiter is in memory, and there is no authentication. Put the app behind your own access control before exposing it.
 - **Preview models.** The default model names are preview releases and may change. Override them with the `GEMINI_*_MODEL` variables.
