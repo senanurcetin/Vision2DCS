@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AnalysisProject, Instrument } from '../types';
-import { parseProjectBackup, serializeProject } from './projectBackup';
+import { MAX_PROJECT_BACKUP_BYTES, assertProjectBackupBytes, parseProjectBackup, serializeProject } from './projectBackup';
 
 const instrument: Instrument = {
   id: 'i1', tagName: 'PT-101', equipmentType: 'Transmitter', signalType: 'AI', description: 'Pressure',
@@ -13,6 +13,21 @@ const project: AnalysisProject = {
 };
 
 describe('project backup', () => {
+  it('uses one byte limit for import and export, including UTF-8 overhead', () => {
+    expect(() => assertProjectBackupBytes(MAX_PROJECT_BACKUP_BYTES)).not.toThrow();
+    expect(() => assertProjectBackupBytes(MAX_PROJECT_BACKUP_BYTES + 1)).toThrow('48 MiB');
+    expect(() => assertProjectBackupBytes(-1)).toThrow('48 MiB');
+    expect(() => assertProjectBackupBytes(Number.NaN)).toThrow('48 MiB');
+    const unicode = { ...project, name: 'Buhar ölçümü – basınç' };
+    expect(parseProjectBackup(serializeProject(unicode), 'p').name).toBe(unicode.name);
+  });
+
+  it('does not generate an export that the imported-size contract rejects', () => {
+    const exported = serializeProject(project);
+    expect(() => assertProjectBackupBytes(new TextEncoder().encode(exported).byteLength)).not.toThrow();
+    expect(parseProjectBackup(exported, 'reimport').instruments).toHaveLength(1);
+  });
+
   it('round-trips a project under a new id', () => {
     const restored = parseProjectBackup(serializeProject(project), 'proj-2');
     expect(restored).toMatchObject({ ...project, id: 'proj-2', instruments: [{ ...instrument, id: 'proj-2-inst-0' }] });
