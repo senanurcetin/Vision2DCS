@@ -320,7 +320,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
                     {sentinelAlerts.length === 0 ? (
-                      <div className="text-[10px] text-emerald-500 bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">All loops compliant with ISA-5.1 standards.</div>
+                      <div className="text-[10px] text-emerald-500 bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">No issues flagged by the limited tag/loop checks. Engineering review is still required; this is not ISA-5.1 certification.</div>
                     ) : sentinelAlerts.map((alert, i) => (
                       <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border text-[10px] leading-relaxed ${alert.severity === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : alert.severity === 'warning' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
                          <span className="font-bold underline">{alert.tag}:</span>

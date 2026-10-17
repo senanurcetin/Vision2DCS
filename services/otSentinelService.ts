@@ -5,7 +5,7 @@ const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'es
 
 /**
  * OTSentinelService: Automated engineering logic auditor.
- * Validates extraction results against industrial engineering standards.
+ * Heuristic tag and loop review only; does not certify ISA-5.1 or plant safety.
  */
 export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => {
   const alerts: SentinelAlert[] = [];
@@ -76,13 +76,15 @@ export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => 
   loopMap.forEach((items, loopId) => {
     // Loop keys start with the measured-variable letter, so "F-..." is a flow loop
     const hasFlowTransmitter = loopId.startsWith('F-') && items.some(i => i.signalType === 'AI');
-    const hasControlValve = items.some(i => i.signalType === 'AO' || isValveTag(i.tagName));
+    // A controller output (e.g. FIC-101 AO) is not itself a valve.
+    // Require a valve-function tag instead of any analog output in the loop.
+    const hasControlValve = items.some(i => isValveTag(i.tagName));
 
     if (hasFlowTransmitter && !hasControlValve) {
       alerts.push({
         tag: `Loop ${loopId}`,
         severity: 'info',
-        message: `Incomplete Flow Control Loop: Transmitter found in loop ${loopId} but no control valve (AO) detected.`
+        message: `Review flow loop ${loopId}: a flow measurement was found without a final valve-function tag. This heuristic is not a topology certification.`
       });
     }
   });
