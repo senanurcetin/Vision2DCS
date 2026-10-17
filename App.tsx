@@ -10,6 +10,7 @@ import { normalizeInstrument } from './services/normalizeInstruments';
 import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
 import { conceptExportBlockers } from './services/conceptExportGate';
+import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
 
@@ -91,7 +92,7 @@ const App: React.FC = () => {
     if (!currentProjectId) return;
     updateProject(currentProjectId, p => ({
       ...p,
-      instruments: p.instruments.map(inst => inst.id === id ? { ...inst, ...updates } : inst)
+      instruments: p.instruments.map(inst => inst.id === id ? applyInstrumentUpdate(inst, updates) : inst)
     }));
   }, [currentProjectId, updateProject]);
 
