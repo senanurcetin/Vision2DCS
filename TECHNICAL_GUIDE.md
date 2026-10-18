@@ -48,7 +48,7 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 - **Tag matching** is format-insensitive, so `FT101`, `FT 101` and `FT-101` count as the same tag. Precision and recall are micro-averaged over all samples.
 - **Signal and block type accuracy** are measured on matched tags only. An expected field may list several acceptable values.
 
-The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely.
+The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely. Their `signalConnections` labels identify directed, actually drawn *instrument signal* lines only. `eval/topology.ts` separately microaverages directed edge precision/recall/F1 using canonical tag identities, treating missing, reversed, dangling and self-links as errors. The visualization engine's inferred loop chains and physical pipe connectivity are not labelled signal edges. Topology results are printed during an explicitly authorized real-model run but are **not yet included** in persisted v1 benchmark reports; `eval:compare` remains tag-only. No model performance claim is made without a real evaluation.
 
 ## Gemini SDK 2.x contract and image output
 
