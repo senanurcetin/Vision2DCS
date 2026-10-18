@@ -30,6 +30,59 @@ describe('loadProjects', () => {
     expect(loadProjects(memoryStorage(raw)).map(p => p.id)).toEqual(['a']);
   });
 
+
+  it('rejects malformed stored instrument rows without hiding damage inside a valid project', () => {
+    const healthy = project('healthy');
+    const instrument = {
+      id: 'i1', tagName: 'PT-101', equipmentType: 'Transmitter', signalType: 'AI',
+      description: 'Pressure', engineeringUnits: 'barg', pcs7BlockType: 'MonAnL',
+      abb800xaObject: 'AI_Object', confidence: 'high', reviewed: true,
+    };
+    for (const invalid of [null, 5, [], { ...instrument, signalType: 42 },
+      { ...instrument, description: null }, { ...instrument, connectedTo: ['PT-102'] }]) {
+      const corrupted = { ...project('corrupt'), instruments: [instrument, invalid] };
+      const saved = JSON.stringify([corrupted, healthy]);
+      expect(loadProjects(memoryStorage(saved))).toEqual([healthy]);
+    }
+  });
+
+  it('preserves valid locally reviewed instruments and rejects duplicate instrument IDs', () => {
+    const row = {
+      id: 'sensor', tagName: 'PT-101', equipmentType: 'Transmitter', signalType: 'AI',
+      description: 'Pressure', engineeringUnits: 'barg', pcs7BlockType: 'MonAnL',
+      abb800xaObject: 'AI_Object', confidence: 'high', reviewed: true,
+    };
+    const valid = { ...project('checked'), instruments: [row] };
+    expect(loadProjects(memoryStorage(JSON.stringify([valid])))[0].instruments[0].reviewed).toBe(true);
+    const corrupt = { ...valid, instruments: [row, { ...row, tagName: 'PT-102' }] };
+    expect(loadProjects(memoryStorage(JSON.stringify([corrupt])))).toEqual([]);
+  });
+
+  it('removes unsafe image URLs from browser storage while preserving instrument data', () => {
+    const stored = {
+      ...project('plant'),
+      imageUrl: 'https://example.invalid/plant.svg',
+      digitalTwinUrl: 'javascript:alert(1)',
+    };
+    expect(loadProjects(memoryStorage(JSON.stringify([stored])))).toEqual([
+      { ...stored, imageUrl: '', digitalTwinUrl: undefined },
+    ]);
+    const valid = { ...project('local'), imageUrl: 'data:image/png;base64,AAAA',
+      digitalTwinUrl: 'data:image/webp;base64,AQID' };
+    expect(loadProjects(memoryStorage(JSON.stringify([valid])))).toEqual([valid]);
+    const svg = { ...project('svg'), imageUrl: 'data:image/svg+xml;base64,AAAA' };
+    expect(loadProjects(memoryStorage(JSON.stringify([svg])))[0].imageUrl).toBe('');
+  });
+
+  it('skips duplicate project IDs, oversized arrays and malformed metadata', () => {
+    const healthy = project('healthy');
+    const repeated = { ...project('oversized'), instruments: Array(2001).fill(null) };
+    const badDate = { ...project('bad-date'), date: 2026 };
+    expect(loadProjects(memoryStorage(JSON.stringify([
+      healthy, { ...healthy, name: 'duplicate' }, repeated, badDate, project('other'),
+    ]))).map(p => p.id)).toEqual(['healthy', 'other']);
+  });
+
   it('survives storage that throws on read', () => {
     expect(loadProjects({ getItem: () => { throw new Error('blocked'); }, setItem: () => {} })).toEqual([]);
   });

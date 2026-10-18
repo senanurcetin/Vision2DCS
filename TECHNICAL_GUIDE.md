@@ -27,7 +27,7 @@ Mapping a 2D image back to a node-based graph:
 ## 🖼 Upload and Persistence
 
 - **Upload** (`services/imageUpload.ts`): only JPEG, PNG and WebP files up to 25 MB are accepted. Drawings larger than 2048 px on the longest side are downscaled in the browser, keeping their format so line work stays crisp, before they are sent to `/api/analyze`.
-- **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Corrupt saved data is skipped instead of breaking start-up. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
+- **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Saved project records now validate instrument field types, row count and duplicate identities; corrupted records are skipped **as a whole** so no instrument silently disappears. Unsafe external/SVG image URLs are cleared, and repeated project IDs are ignored. Previously recorded local review flags remain local editor state, not signed approval. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
 
 ## 🛡 OT-Sentinel Audit Logic
 
