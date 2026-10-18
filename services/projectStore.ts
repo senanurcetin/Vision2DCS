@@ -77,10 +77,11 @@ export const loadProjects = (storage: KeyValueStorage | undefined): AnalysisProj
       if (!isStoredProject(entry) || !entry.id.trim() || seenIds.has(entry.id)) continue;
       seenIds.add(entry.id);
       const twin = entry.digitalTwinUrl ? safeStoredImage(entry.digitalTwinUrl) : '';
+      const { digitalTwinUrl: _untrustedTwin, ...safeEntry } = entry;
       projects.push({
-        ...entry,
+        ...safeEntry,
         imageUrl: safeStoredImage(entry.imageUrl),
-        ...(twin ? { digitalTwinUrl: twin } : { digitalTwinUrl: undefined }),
+        ...(twin ? { digitalTwinUrl: twin } : {}),
       });
     }
     return projects;
