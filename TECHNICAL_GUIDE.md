@@ -40,7 +40,7 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 
 ## Model Output Normalization
 
-`services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
+`services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. A non-object row anywhere in a model-generated array also rejects the entire response, rather than silently discarding a potentially important instrument. Valid object rows still retain unknown classifications as low-confidence findings. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
 
 ## 📏 Evaluation
 
@@ -55,7 +55,7 @@ The samples are synthetic drawings authored for this repository (SVG sources inc
 The server uses `@google/genai@2.29.1` with `models.generateContent`, a typed JSON response schema for P&ID tag extraction, and `response.text` for decoding model output. Offline provider-mock contract tests cover both extraction and generated image paths without API credentials. Inline image responses accept only PNG, JPEG or WebP with valid base64 and a 12 MiB decoded payload limit; HTML/SVG outputs are rejected. These tests verify local SDK call shapes and response handling, **not the correctness of real Gemini model predictions**. A genuine, explicitly authorized `npm run eval` benchmark and human review are still required before production acceptance.
 
 ## Manual editing and backup
-A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained; no vendor import claim is implied.
+A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained. Any non-object instrument row blocks both backup import and serialization to prevent a silently incomplete engineering record; valid records still undergo normalization and lose untrusted review flags. No vendor import claim is implied.
 
 ## 📊 Export Mappings
 

@@ -13,9 +13,18 @@ export const MAX_PROJECT_BACKUP_BYTES = 48 * 1024 * 1024;
 // Keep backup import/export bounded even when an untrusted JSON file contains
 // millions of tiny rows that fit below the byte limit.
 export const MAX_PROJECT_BACKUP_INSTRUMENTS = 2000;
-const assertBackupInstrumentCount = (value: unknown): void => {
+const assertBackupInstrumentCount = (value: unknown): asserts value is unknown[] => {
   if (!Array.isArray(value) || value.length > MAX_PROJECT_BACKUP_INSTRUMENTS) {
     throw new Error('Project backup exceeds the 2000 instrument limit.');
+  }
+};
+
+// Missing rows in a backup cannot be reconstructed. Reject the entire file
+// instead of presenting a silently incomplete instrument list.
+const assertBackupInstrumentRows = (value: unknown): asserts value is Record<string, unknown>[] => {
+  assertBackupInstrumentCount(value);
+  if (value.some(item => typeof item !== 'object' || item === null || Array.isArray(item))) {
+    throw new Error('Project backup contains an invalid instrument row.');
   }
 };
 export const assertProjectBackupBytes = (bytes: number): void => {
@@ -30,7 +39,7 @@ const checkedBackupText = (text: string): string => {
 };
 
 export const serializeProject = (project: AnalysisProject): string => {
-  assertBackupInstrumentCount(project.instruments);
+  assertBackupInstrumentRows(project.instruments);
   return checkedBackupText(JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2));
 };
 
@@ -62,18 +71,16 @@ export const parseProjectBackup = (text: string, newId: string): AnalysisProject
   if (envelope?.format !== FORMAT) throw new Error('The file is not a Vision2DCS project backup.');
   if (envelope.version !== VERSION) throw new Error(`Unsupported backup version: ${String(envelope.version)}.`);
   if (!isProject(envelope.project)) throw new Error('The backup does not contain a valid project.');
-  assertBackupInstrumentCount(envelope.project.instruments);
-
   const project = envelope.project;
+  const instruments: unknown = project.instruments;
+  assertBackupInstrumentRows(instruments);
   const twin = safeImage(project.digitalTwinUrl);
   return {
     id: newId,
     name: String(project.name).trim() || 'Imported project',
     date: typeof project.date === 'string' ? project.date : new Date().toLocaleString(),
     imageUrl: safeImage(project.imageUrl),
-    instruments: (project.instruments as unknown[])
-      .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null && !Array.isArray(i))
-      .map((i, index) => normalizeInstrument(i, index, `${newId}-inst`)),
+    instruments: instruments.map((i, index) => normalizeInstrument(i, index, `${newId}-inst`)),
     ...(twin ? { digitalTwinUrl: twin } : {}),
   };
 };
