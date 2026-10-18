@@ -65,7 +65,7 @@ describe('loadProjects', () => {
       digitalTwinUrl: 'javascript:alert(1)',
     };
     expect(loadProjects(memoryStorage(JSON.stringify([stored])))).toEqual([
-      { ...stored, imageUrl: '', digitalTwinUrl: undefined },
+      { ...project('plant'), imageUrl: '' },
     ]);
     const valid = { ...project('local'), imageUrl: 'data:image/png;base64,AAAA',
       digitalTwinUrl: 'data:image/webp;base64,AQID' };
