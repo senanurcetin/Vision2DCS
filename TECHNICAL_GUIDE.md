@@ -54,6 +54,10 @@ The samples are synthetic drawings authored for this repository (SVG sources inc
 
 The server uses `@google/genai@2.29.1` with `models.generateContent`, a typed JSON response schema for P&ID tag extraction, and `response.text` for decoding model output. Offline provider-mock contract tests cover both extraction and generated image paths without API credentials. Inline image responses accept only PNG, JPEG or WebP with valid base64 and a 12 MiB decoded payload limit; HTML/SVG outputs are rejected. These tests verify local SDK call shapes and response handling, **not the correctness of real Gemini model predictions**. A genuine, explicitly authorized `npm run eval` benchmark and human review are still required before production acceptance.
 
+## Bounded engineering edit history
+
+Tag edits, manual additions and deletions are recorded in a bounded 30-step, per-project, **in-memory only** undo/redo history using one React reducer for atomic state/history transitions. Imported or deleted projects start without inherited edit history; editing after undo clears the redo stack. History stores instrument arrays only (not P&ID raster images or digital-twin blobs). Undo/redo conservatively revoke **all restored row review flags** so a previous approval cannot be replayed into the current engineering snapshot. Export remains blocked until explicit human re-review. Reloading the browser clears undo/redo history, not saved projects. This is local convenience history, not a signed engineering audit trail.
+
 ## Manual editing and backup
 A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained; no vendor import claim is implied.
 
