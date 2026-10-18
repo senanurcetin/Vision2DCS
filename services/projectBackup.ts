@@ -13,7 +13,7 @@ export const MAX_PROJECT_BACKUP_BYTES = 48 * 1024 * 1024;
 // Keep backup import/export bounded even when an untrusted JSON file contains
 // millions of tiny rows that fit below the byte limit.
 export const MAX_PROJECT_BACKUP_INSTRUMENTS = 2000;
-const assertBackupInstrumentCount = (value: unknown): asserts value is unknown[] => {
+function assertBackupInstrumentCount(value: unknown): asserts value is unknown[] {
   if (!Array.isArray(value) || value.length > MAX_PROJECT_BACKUP_INSTRUMENTS) {
     throw new Error('Project backup exceeds the 2000 instrument limit.');
   }
@@ -21,7 +21,7 @@ const assertBackupInstrumentCount = (value: unknown): asserts value is unknown[]
 
 // Missing rows in a backup cannot be reconstructed. Reject the entire file
 // instead of presenting a silently incomplete instrument list.
-const assertBackupInstrumentRows = (value: unknown): asserts value is Record<string, unknown>[] => {
+function assertBackupInstrumentRows(value: unknown): asserts value is Record<string, unknown>[] {
   assertBackupInstrumentCount(value);
   if (value.some(item => typeof item !== 'object' || item === null || Array.isArray(item))) {
     throw new Error('Project backup contains an invalid instrument row.');
