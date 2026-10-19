@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { createApiHandler } from './api';
 import { readServerConfig } from './config';
 import { createGeminiService, GeminiService } from './gemini';
@@ -9,11 +10,25 @@ export const MAX_BODY_BYTES = 15 * 1024 * 1024;
 
 export type ApiHandler = (request: Request, clientId: string) => Promise<Response | null>;
 
-/** Wires the API to Gemini using env vars (GEMINI_API_KEY, GEMINI_*_MODEL). */
+/** Live provider requests require explicit enablement and a separate operator token. */
 export const createGeminiApiHandler = (env: Record<string, string | undefined>): ApiHandler => {
   const config = readServerConfig(env);
+  const secret = env.VISION2DCS_AI_ACCESS_TOKEN;
+  const aiEnabled = env.VISION2DCS_ENABLE_AI === 'true'
+    && typeof secret === 'string' && secret.length >= 32 && !!config.apiKey;
+  const expectedDigest = aiEnabled ? createHash('sha256').update(secret).digest() : null;
   let gemini: GeminiService | null = null;
   return createApiHandler({
+    aiEnabled,
+    authorizeRequest: (request: Request) => {
+      if (!expectedDigest) return false;
+      const header = request.headers.get('authorization');
+      if (!header?.startsWith('Bearer ') || header.length > 1024) return false;
+      const provided = header.slice(7);
+      if (!provided || provided !== provided.trim()) return false;
+      const actualDigest = createHash('sha256').update(provided).digest();
+      return timingSafeEqual(actualDigest, expectedDigest);
+    },
     getGemini: () => {
       const { apiKey } = config;
       if (!apiKey) return null;
@@ -71,7 +86,12 @@ export const handleNodeApiRequest = async (
 
   const request = new Request(url, {
     method: req.method,
-    headers: { 'content-type': String(req.headers['content-type'] ?? '') },
+    headers: {
+      'content-type': String(req.headers['content-type'] ?? ''),
+      ...(typeof req.headers.authorization === 'string'
+        ? { authorization: req.headers.authorization }
+        : {}),
+    },
     body: body ? new Uint8Array(body) : undefined,
   });
   const response = await handler(request, req.socket.remoteAddress ?? 'unknown');

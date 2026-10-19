@@ -7,8 +7,9 @@ import { createGeminiApiHandler } from './node';
 const distDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const port = Number(process.env.PORT ?? 3000);
 
-if (!process.env.GEMINI_API_KEY) {
-  console.warn('GEMINI_API_KEY is not set: analysis requests will return 503.');
+if (!process.env.GEMINI_API_KEY || process.env.VISION2DCS_ENABLE_AI !== 'true' ||
+    (process.env.VISION2DCS_AI_ACCESS_TOKEN?.length ?? 0) < 32) {
+  console.warn('Paid AI routes are disabled; a provider key, explicit enablement and long operator access token are required.');
 }
 
 createAppServer({ handler: createGeminiApiHandler(process.env), distDir })

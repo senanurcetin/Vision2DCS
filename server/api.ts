@@ -14,6 +14,9 @@ export interface ApiDeps {
   getGemini: () => GeminiService | null;
   /** Returns false when the client has exhausted its request budget. */
   allowRequest: (clientId: string) => boolean;
+  /** Production server defaults to disabled; explicit operator opt-in required. */
+  aiEnabled?: boolean;
+  authorizeRequest?: (request: Request) => boolean;
   log?: (message: string, error: unknown) => void;
 }
 
@@ -37,7 +40,7 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
  * Web-standard handler for the /api routes. Returns null for paths it does not
  * own so hosts can fall through to static files.
  */
-export const createApiHandler = ({ getGemini, allowRequest, log = console.error }: ApiDeps) =>
+export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = true, authorizeRequest = () => true, log = console.error }: ApiDeps) =>
   async (request: Request, clientId: string): Promise<Response | null> => {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;
@@ -45,6 +48,9 @@ export const createApiHandler = ({ getGemini, allowRequest, log = console.error 
     const route = pathname === '/api/analyze' || pathname === '/api/digital-twin' ? pathname : null;
     if (!route) return error(404, 'Not found');
     if (request.method !== 'POST') return error(405, 'Method not allowed');
+    // Refuse anonymous paid inference BEFORE rate limiting, parsing or provider access.
+    if (!aiEnabled) return error(503, 'AI endpoints are disabled by server configuration.');
+    if (!authorizeRequest(request)) return error(401, 'AI access token is missing or invalid.');
     if (!allowRequest(clientId)) return error(429, 'Too many requests. Please wait a minute and try again.');
 
     const gemini = getGemini();
