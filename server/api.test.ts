@@ -39,6 +39,15 @@ describe('createApiHandler', () => {
     expect(await setup().call('/index.html', undefined, 'GET')).toBeNull();
   });
 
+  it('marks all AI JSON responses non-cacheable and disables content-type sniffing', async () => {
+    const valid = await setup().call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' });
+    const rejected = await setup({ allow: false }).call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' });
+    for (const response of [valid, rejected]) {
+      expect(response?.headers.get('cache-control')).toBe('no-store');
+      expect(response?.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+  });
+
   it('analyzes a supported image', async () => {
     const { gemini, call } = setup();
     const result = await read(await call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }));

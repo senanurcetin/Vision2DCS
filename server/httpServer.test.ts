@@ -64,9 +64,13 @@ describe('createAppServer', () => {
         let body = '';
         result.setEncoding('utf8');
         result.on('data', chunk => { body += chunk; });
-        result.on('end', () => resolve({ status: result.statusCode ?? 0, body }));
+        result.on('end', () => {
+          call.destroy(); // The declared oversized upload was never sent.
+          resolve({ status: result.statusCode ?? 0, body });
+        });
       });
       call.on('error', reject);
+      call.setTimeout(4000, () => call.destroy(new Error('Timed out waiting for early HTTP 413.')));
       call.flushHeaders(); // Deliberately never send the declared 15 MiB body.
     });
     expect(received.status).toBe(413);
