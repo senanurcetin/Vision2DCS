@@ -54,7 +54,8 @@ const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
             )}
             <div className="text-right">
               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Est. Project Capex</div>
-              <div className="text-xl font-bold text-blue-400">{bom.estimatedCount === 0 ? 'Not estimated' : '
+              <div className="text-xl font-bold text-blue-400">{bom.estimatedCount === 0 ? "Not estimated" : "USD " + bom.total.toLocaleString()}</div>
+              {!bom.isComplete && <div role="status" className="text-[10px] text-amber-300">Partial estimate: {bom.missingCount} unpriced item(s)</div>
             </div>
           </div>
         </div>
@@ -77,94 +78,7 @@ const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
                     <div className="text-[9px] text-slate-500">{inst.model || 'Generic Model'}</div>
                   </td>
                   <td className="p-3 text-right font-mono text-blue-400">
-                    {estimatedUnitCost(inst.estimatedCost) === undefined ? 'Not estimated' : '
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default AuditBOM;
- + bom.total.toLocaleString()}</div>
-              {!bom.isComplete && <div role="status" className="text-[10px] text-amber-300">Partial estimate: {bom.missingCount} unpriced item(s)</div>}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-950/40 rounded-xl border border-slate-800 overflow-hidden">
-          <table className="w-full text-[11px] text-left">
-            <thead className="bg-slate-800/50 text-slate-500 font-bold uppercase tracking-wider">
-              <tr>
-                <th className="p-3">Item</th>
-                <th className="p-3">Brand/Model</th>
-                <th className="p-3 text-right">Unit Est.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {instruments.map(inst => (
-                <tr key={inst.id} className="hover:bg-white/5">
-                  <td className="p-3 font-bold text-slate-300">{inst.tagName}</td>
-                  <td className="p-3">
-                    <div className="text-slate-400">{inst.brand || 'TBD'}</div>
-                    <div className="text-[9px] text-slate-500">{inst.model || 'Generic Model'}</div>
-                  </td>
-                  <td className="p-3 text-right font-mono text-blue-400">
-                    ${(inst.estimatedCost || 0).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default AuditBOM;
- + estimatedUnitCost(inst.estimatedCost)!.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default AuditBOM;
- + bom.total.toLocaleString()}</div>
-              {!bom.isComplete && <div role="status" className="text-[10px] text-amber-300">Partial estimate: {bom.missingCount} unpriced item(s)</div>}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-950/40 rounded-xl border border-slate-800 overflow-hidden">
-          <table className="w-full text-[11px] text-left">
-            <thead className="bg-slate-800/50 text-slate-500 font-bold uppercase tracking-wider">
-              <tr>
-                <th className="p-3">Item</th>
-                <th className="p-3">Brand/Model</th>
-                <th className="p-3 text-right">Unit Est.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {instruments.map(inst => (
-                <tr key={inst.id} className="hover:bg-white/5">
-                  <td className="p-3 font-bold text-slate-300">{inst.tagName}</td>
-                  <td className="p-3">
-                    <div className="text-slate-400">{inst.brand || 'TBD'}</div>
-                    <div className="text-[9px] text-slate-500">{inst.model || 'Generic Model'}</div>
-                  </td>
-                  <td className="p-3 text-right font-mono text-blue-400">
-                    ${(inst.estimatedCost || 0).toLocaleString()}
+                    {estimatedUnitCost(inst.estimatedCost) === undefined ? "Not estimated" : "USD " + estimatedUnitCost(inst.estimatedCost)!.toLocaleString()}
                   </td>
                 </tr>
               ))}
