@@ -5,7 +5,7 @@ import path from 'node:path';
 import { prepareBenchmarkSamples, requireEvaluationCallBudget } from './preflight';
 
 const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO8mSY8AAAAASUVORK5CYII=', 'base64',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgZGL+DwABFAEG1rmmRQAAAABJRU5ErkJggg==', 'base64',
 );
 const expected = {
   instruments: [
@@ -61,9 +61,18 @@ describe('offline all-fixture benchmark preflight', () => {
   it('rejects false PNG content and missing fixture directories', async () => {
     const root = await dir();
     await sample(root, 'false-png', expected, Buffer.from('this is not a real png header'));
-    await expect(prepareBenchmarkSamples(root)).rejects.toThrow('not a supported PNG');
+    await expect(prepareBenchmarkSamples(root)).rejects.toThrow('not a complete verified PNG');
     await expect(prepareBenchmarkSamples(await dir())).rejects.toThrow('between 1 and 100');
   });
+  it('rejects a later drawing with altered PNG bytes before any paid model call', async () => {
+    const root = await dir();
+    await sample(root, 'a-valid', expected);
+    const damaged = Buffer.from(png);
+    damaged[47] ^= 1; // Invalidate the image's IDAT checksum.
+    await sample(root, 'z-bad-crc', expected, damaged);
+    await expect(prepareBenchmarkSamples(root)).rejects.toThrow('not a complete verified PNG');
+  });
+
   it('requires an explicit paid request budget covering every sample', () => {
     for (const input of [undefined, '', '0', '01', '-1', '1', '101', '1.5']) {
       expect(() => requireEvaluationCallBudget(input, 2)).toThrow();

@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { ISA_NAMING_PATTERN } from '../services/tagParser';
-import { matchesRasterSignature } from '../server/base64';
+import { validateBenchmarkPng } from './png';
 import { type ExpectedInstrument, scoreSample } from './score';
 import { type ExpectedSignalConnection, scoreExplicitSignalConnections } from './topology';
 
@@ -41,7 +41,7 @@ export async function prepareBenchmarkSamples(directory: string): Promise<Prepar
   for (const name of names) {
     const drawingFile = path.join(directory, name, 'drawing.png');
     const expectedFile = path.join(directory, name, 'expected.json');
-    const [drawingStat, labelStat] = await Promise.all([stat(drawingFile), stat(expectedFile)]);
+    const [drawingStat, labelStat] = await Promise.all([lstat(drawingFile), lstat(expectedFile)]);
     if (!drawingStat.isFile() || drawingStat.size < 24 ||
         drawingStat.size > MAX_BENCHMARK_DRAWING_BYTES) {
       throw new Error('Invalid or oversized benchmark PNG drawing: ' + name);
@@ -54,8 +54,14 @@ export async function prepareBenchmarkSamples(directory: string): Promise<Prepar
       throw new Error('Invalid or oversized benchmark expected.json: ' + name);
     }
     const [drawing, labels] = await Promise.all([readFile(drawingFile), readFile(expectedFile)]);
-    if (!matchesRasterSignature(drawing.subarray(0, 48).toString('base64'), 'image/png')) {
-      throw new Error('Benchmark drawing is not a supported PNG: ' + name);
+    // A fixture can change between stat and read; reject a moving source.
+    if (drawing.length !== drawingStat.size || labels.length !== labelStat.size) {
+      throw new Error('Benchmark source changed during offline preflight: ' + name);
+    }
+    try {
+      validateBenchmarkPng(drawing);
+    } catch {
+      throw new Error('Benchmark drawing is not a complete verified PNG: ' + name);
     }
     let parsed: unknown;
     try { parsed = JSON.parse(labels.toString('utf8')); }
