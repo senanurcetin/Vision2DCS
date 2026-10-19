@@ -54,7 +54,7 @@ class BodyTooLargeError extends Error {}
 
 // Reject immediately upon crossing the body limit. Continue draining the
 // inbound stream without buffering it so HTTP clients can receive a 413.
-const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer> =>
+export const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer> =>
   new Promise((resolve, reject) => {
     let chunks: Buffer[] = [];
     let size = 0;
@@ -75,9 +75,17 @@ const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer> =>
       if (!exceeded) resolve(Buffer.concat(chunks));
     });
     req.on('error', reject);
+    // A client may close while transmitting a declared body. 'end' is not
+    // guaranteed on early disconnect; do not leave this promise unresolved.
+    req.on('aborted', () => reject(new Error('Client upload aborted.')));
+    req.on('close', () => {
+      if (!req.complete) reject(new Error('Client upload closed before completion.'));
+    });
   });
 
 const sendError = (res: ServerResponse, status: number, message: string) => {
+  // The client may have disconnected while the body reader was pending.
+  if (res.destroyed || res.writableEnded) return;
   res.writeHead(status, {
     'content-type': 'application/json',
     'cache-control': 'no-store',
