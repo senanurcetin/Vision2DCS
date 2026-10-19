@@ -48,6 +48,18 @@ try {
   await page.getByRole('button', { name: 'Clear AI token' }).click();
   if (await processButton.isEnabled()) throw new Error('Clearing access must lock AI again.');
 
+  // First-time visitors can explore a real bundled synthetic P&ID without AI.
+  await page.getByRole('button', { name: 'Load sample P&ID' }).click();
+  const sampleRows = page.locator('table tbody tr');
+  await sampleRows.first().locator('input').first().waitFor({ state: 'visible' });
+  if (await sampleRows.count() !== 5) throw new Error('Offline sample must contain five synthetic instrument rows.');
+  if (await sampleRows.first().locator('input').first().inputValue() !== 'FT-101') {
+    throw new Error('Offline sample did not expose the labelled flow transmitter.');
+  }
+  if (await page.getByRole('button', { name: 'NEXUS TAG MAP' }).isEnabled()) {
+    throw new Error('Synthetic example must still require engineer review.');
+  }
+
   const backupInput = page.locator('input[accept="application/json,.json"]');
   await backupInput.setInputFiles({
     name: 'offline-project.vision2dcs.json',
@@ -95,7 +107,7 @@ try {
     await page.screenshot({ path: output + '/nexus-' + width + '.png', animations: 'disabled' });
   }
   if (apiRequests.length) throw new Error('Offline browser smoke unexpectedly called paid AI API routes.');
-  console.log('Chromium smoke PASS: import, review gate, edit/undo/redo, invalid import and 375/768/1440 viewports.');
+  console.log('Chromium smoke PASS: bundled offline sample, import, review gate, edit/undo/redo, invalid import and 375/768/1440 viewports.');
 } finally {
   await browser.close();
 }

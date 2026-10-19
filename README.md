@@ -74,6 +74,8 @@ Set `GEMINI_API_KEY` in `.env.local`. **Billable AI is disabled by default** eve
 npm run dev
 ```
 
+**Public interactive NEXUS demo:** [vision2dcs-nexus-demo.vercel.app](https://vision2dcs-nexus-demo.vercel.app/). Select **Load sample P&ID** to open the bundled, hand-labelled synthetic reactor-feed drawing with five draft instruments; no provider calls, billing or operator token are involved. The example remains **unreviewed** and all concept exports require explicit local engineer review. The Vercel demo is static and does not provide a paid Gemini backend; run the server locally with the separately documented security controls for authorized model use.
+
 ### Type check and tests
 
 ```bash

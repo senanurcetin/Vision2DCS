@@ -15,6 +15,7 @@ import { serializeNexusTagMapV1 } from './services/nexusTagMapReader';
 import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
+import { createSyntheticDemoProject } from './services/offlineDemo';
 
 type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
@@ -93,6 +94,19 @@ const App: React.FC = () => {
       setErrorMessage(`Analysis failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const loadSyntheticDemo = async () => {
+    setErrorMessage(null);
+    try {
+      // A local raster and pre-labelled synthetic data only. Never invoke Gemini.
+      addProject(await createSyntheticDemoProject(`demo-${Date.now()}`));
+      setLeftPanelView('image');
+      setActiveTab('list');
+      setIsSidebarOpen(false);
+    } catch (err) {
+      setErrorMessage(`Could not load the offline demo: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -215,6 +229,7 @@ const App: React.FC = () => {
               </>
             )}
           </div>
+          <button type="button" onClick={loadSyntheticDemo} className="rounded-full border border-cyan-400/45 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20" title="Explore a synthetic P&ID and manually editable tags without API calls">Load sample P&amp;ID</button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp" />
           <button disabled={!aiAccessConfigured || isAnalyzing} title={!aiAccessConfigured ? 'Set an operator AI access token first' : 'Analyze a P&ID drawing'} onClick={() => fileInputRef.current?.click()} className="nexus-primary-action rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
             Process Diagram
