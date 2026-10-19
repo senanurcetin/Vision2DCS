@@ -157,7 +157,7 @@ describe('project backup', () => {
       { ...project, imageUrl: 123 },
       { ...project, digitalTwinUrl: [] },
     ]) {
-      expect(() => serializeProject(invalid as AnalysisProject)).toThrow('invalid project metadata');
+      expect(() => serializeProject(invalid as unknown as AnalysisProject)).toThrow('invalid project metadata');
       const raw = JSON.stringify({ format: 'vision2dcs-project', version: 1, project: invalid });
       expect(() => parseProjectBackup(raw, 'p')).toThrow('valid project');
     }

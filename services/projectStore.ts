@@ -1,4 +1,4 @@
-import { AnalysisProject } from '../types';
+import type { AnalysisProject, Instrument } from '../types';
 import { isValidCanonicalBase64 } from './base64';
 
 export const STORAGE_KEY = 'dcs_projects';
@@ -29,7 +29,7 @@ const MAX_SAVED_INSTRUMENTS = 2000;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-export const isStoredInstrument = (value: unknown): boolean => {
+export const isStoredInstrument = (value: unknown): value is Instrument => {
   if (!isRecord(value)) return false;
   return REQUIRED_INSTRUMENT_STRINGS.every(k => typeof value[k] === 'string')
     && typeof value.id === 'string' && value.id.length > 0
