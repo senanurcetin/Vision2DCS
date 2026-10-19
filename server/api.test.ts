@@ -125,6 +125,29 @@ describe('createApiHandler', () => {
     expect((await setup({ allow: false }).call('/api/analyze', {}))?.status).toBe(429);
   });
 
+  it('does not log original SDK error messages, plant data or credential fragments', async () => {
+    const original = new Error('secret-provider-key and private plant P&ID');
+    const recorded = vi.fn();
+    const handler = createApiHandler({
+      getGemini: () => fakeGemini({ analyze: async () => { throw original; } }),
+      allowRequest: () => true,
+      aiEnabled: true,
+      authorizeRequest: () => true,
+      reserveInference: () => true,
+      log: recorded,
+    });
+    const response = await handler(new Request('http://localhost/api/analyze', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ image: PNG_FIXTURE, mimeType: 'image/png' }),
+    }), 'test-client');
+    expect(response?.status).toBe(502);
+    expect(recorded).toHaveBeenCalledTimes(1);
+    expect(recorded.mock.calls[0][1]).toMatchObject({ name: 'Error' });
+    const serialized = JSON.stringify(recorded.mock.calls);
+    expect(serialized).not.toContain('secret-provider-key');
+    expect(serialized).not.toContain('private plant');
+  });
+
   it('passes model output errors through and hides other upstream details', async () => {
     const modelError = setup({ gemini: fakeGemini({ analyze: async () => { throw new ModelOutputError('AI returned malformed JSON'); } }) });
     expect(await read(await modelError.call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' })))

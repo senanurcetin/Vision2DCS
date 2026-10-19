@@ -113,8 +113,13 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
       const imageUrl = await gemini.digitalTwin(summary);
       return json(200, { imageUrl });
     } catch (e) {
-      log(`Gemini request to ${route} failed:`, e);
       const status = (e as { status?: unknown })?.status;
+      // SDK errors may contain image content, provider URL parameters or
+      // credentials. Never send raw error messages or stacks to telemetry.
+      log(`Gemini request to ${route} failed:`, {
+        name: e instanceof Error ? e.name : 'UnknownError',
+        status: typeof status === 'number' && Number.isSafeInteger(status) ? status : undefined,
+      });
       if (status === 429) return error(503, 'The AI service is rate limited. Please try again shortly.');
       if (status === 401 || status === 403 || (e instanceof Error && e.message.includes('API_KEY_INVALID'))) {
         return error(503, "The server's GEMINI_API_KEY was rejected by the AI service.");
