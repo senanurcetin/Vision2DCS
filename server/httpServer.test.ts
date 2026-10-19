@@ -77,6 +77,26 @@ describe('createAppServer', () => {
     expect(JSON.parse(received.body).error).toMatch(/too large/);
   });
 
+  it('immediately rejects chunked bodies crossing the limit without waiting for request end', async () => {
+    const received = await new Promise<number>((resolve, reject) => {
+      const call = httpRequest(base + '/api/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'transfer-encoding': 'chunked' },
+      }, response => {
+        response.resume();
+        response.on('end', () => {
+          call.destroy();
+          resolve(response.statusCode ?? 0);
+        });
+      });
+      call.on('error', reject);
+      call.setTimeout(10000, () => call.destroy(new Error('Chunked upload did not receive early 413.')));
+      // Never call end(): a server that waits for the full body will time out.
+      call.write(Buffer.alloc(MAX_BODY_BYTES + 1));
+    });
+    expect(received).toBe(413);
+  });
+
   it('rejects request bodies over the limit', async () => {
     const response = await fetch(`${base}/api/analyze`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES + 1) });
     expect(response.status).toBe(413);

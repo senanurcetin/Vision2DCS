@@ -52,23 +52,37 @@ export const createGeminiApiHandler = (env: Record<string, string | undefined>):
 
 class BodyTooLargeError extends Error {}
 
-// Past the limit the rest of the body is drained without being kept, so the
-// client still receives a clean 413 instead of a reset connection.
+// Reject immediately upon crossing the body limit. Continue draining the
+// inbound stream without buffering it so HTTP clients can receive a 413.
 const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer> =>
   new Promise((resolve, reject) => {
     let chunks: Buffer[] = [];
     let size = 0;
+    let exceeded = false;
     req.on('data', (chunk: Buffer) => {
+      if (exceeded) return;
       size += chunk.length;
-      if (size > maxBytes) chunks = [];
-      else chunks.push(chunk);
+      if (size > maxBytes) {
+        exceeded = true;
+        chunks = [];
+        reject(new BodyTooLargeError());
+        req.resume(); // Drain any remaining bytes without awaiting request end.
+        return;
+      }
+      chunks.push(chunk);
     });
-    req.on('end', () => (size > maxBytes ? reject(new BodyTooLargeError()) : resolve(Buffer.concat(chunks))));
+    req.on('end', () => {
+      if (!exceeded) resolve(Buffer.concat(chunks));
+    });
     req.on('error', reject);
   });
 
 const sendError = (res: ServerResponse, status: number, message: string) => {
-  res.writeHead(status, { 'content-type': 'application/json' });
+  res.writeHead(status, {
+    'content-type': 'application/json',
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+  });
   res.end(JSON.stringify({ error: message }));
 };
 
