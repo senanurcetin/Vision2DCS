@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createApiHandler } from './api';
-import { createInferenceRequestCap } from './inferenceBudget';
+import { createInferenceConcurrencyGate, createInferenceRequestCap } from './inferenceBudget';
 import type { GeminiService } from './gemini';
 
 const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO8mSY8AAAAASUVORK5CYII=';
@@ -21,6 +21,7 @@ describe('atomic app-level inference request reservations', () => {
       authorizeRequest: () => true,
       aiEnabled: true,
       reserveInference: createInferenceRequestCap(2),
+      acquireInferenceSlot: createInferenceConcurrencyGate(2),
       log: () => {},
     });
     const call = (path: string, body: unknown) => handler(post(path, body), 'test-client');
@@ -47,6 +48,7 @@ describe('atomic app-level inference request reservations', () => {
       authorizeRequest: () => true,
       aiEnabled: true,
       reserveInference: createInferenceRequestCap(3),
+      acquireInferenceSlot: createInferenceConcurrencyGate(3),
       log: () => {},
     });
     const replies = await Promise.all(Array.from({ length: 12 }, () =>
@@ -64,6 +66,7 @@ describe('atomic app-level inference request reservations', () => {
       authorizeRequest: () => true,
       aiEnabled: true,
       reserveInference: createInferenceRequestCap(1),
+      acquireInferenceSlot: createInferenceConcurrencyGate(1),
       log: () => {},
     });
     const call = () => handler(post('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }), 'test-client');

@@ -19,6 +19,8 @@ export interface ApiDeps {
   authorizeRequest?: (request: Request) => boolean;
   /** Reserve one application-level provider invocation; must fail closed. */
   reserveInference?: () => boolean;
+  /** A synchronous in-flight reservation with an idempotent release. */
+  acquireInferenceSlot?: () => (() => void) | null;
   log?: (message: string, error: unknown) => void;
 }
 
@@ -50,7 +52,7 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
  * own so hosts can fall through to static files.
  */
 export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, authorizeRequest = () => false,
-  reserveInference = () => false, log = console.error }: ApiDeps) =>
+  reserveInference = () => false, acquireInferenceSlot = () => null, log = console.error }: ApiDeps) =>
   async (request: Request, clientId: string): Promise<Response | null> => {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;
@@ -82,9 +84,15 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
           return error(400, 'Image bytes do not match the declared JPEG, PNG or WebP format.');
         }
 
-        if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
-        const instruments = await gemini.analyze({ data: image, mimeType });
-        return json(200, { instruments });
+        const release = acquireInferenceSlot();
+        if (!release) return error(429, 'Too many AI operations in progress.');
+        try {
+          if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
+          const instruments = await gemini.analyze({ data: image, mimeType });
+          return json(200, { instruments });
+        } finally {
+          release();
+        }
       }
 
       const { instruments } = body;
@@ -109,9 +117,15 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
         }
         summary.push({ tagName, description });
       }
-      if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
-      const imageUrl = await gemini.digitalTwin(summary);
-      return json(200, { imageUrl });
+      const release = acquireInferenceSlot();
+      if (!release) return error(429, 'Too many AI operations in progress.');
+      try {
+        if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
+        const imageUrl = await gemini.digitalTwin(summary);
+        return json(200, { imageUrl });
+      } finally {
+        release();
+      }
     } catch (e) {
       const status = (e as { status?: unknown })?.status;
       // SDK errors may contain image content, provider URL parameters or

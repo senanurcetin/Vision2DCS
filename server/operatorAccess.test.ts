@@ -71,6 +71,7 @@ describe('default-deny, operator-gated Gemini ingress', () => {
     const handler = createApiHandler({
       getGemini, allowRequest, aiEnabled: true, authorizeRequest: () => false,
       reserveInference: () => true,
+      acquireInferenceSlot: () => () => {},
     });
     const denied = await handler(new Request('http://localhost/api/digital-twin', {
       method: 'POST', body: '{malformed-json',
@@ -82,6 +83,7 @@ describe('default-deny, operator-gated Gemini ingress', () => {
     const disabled = createApiHandler({
       getGemini, allowRequest, aiEnabled: false, authorizeRequest: () => true,
       reserveInference: () => true,
+      acquireInferenceSlot: () => () => {},
     });
     expect((await disabled(req('Bearer ' + token), 'test-client'))?.status).toBe(503);
     expect(getGemini).not.toHaveBeenCalled();

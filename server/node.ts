@@ -4,7 +4,10 @@ import { createApiHandler } from './api';
 import { readServerConfig } from './config';
 import { createGeminiService, GeminiService } from './gemini';
 import { createRateLimiter } from './rateLimit';
-import { createInferenceRequestCap, parseAiRequestCap } from './inferenceBudget';
+import {
+  createInferenceConcurrencyGate, createInferenceRequestCap,
+  parseAiConcurrency, parseAiRequestCap,
+} from './inferenceBudget';
 
 // Base64 inflates the 10 MB image limit by a third, plus JSON overhead.
 export const MAX_BODY_BYTES = 15 * 1024 * 1024;
@@ -16,14 +19,16 @@ export const createGeminiApiHandler = (env: Record<string, string | undefined>):
   const config = readServerConfig(env);
   const secret = env.VISION2DCS_AI_ACCESS_TOKEN;
   const requestCap = parseAiRequestCap(env.VISION2DCS_AI_MAX_REQUESTS);
+  const concurrencyLimit = parseAiConcurrency(env.VISION2DCS_AI_MAX_CONCURRENT ?? '2');
   const aiEnabled = env.VISION2DCS_ENABLE_AI === 'true'
     && typeof secret === 'string' && secret.length >= 32
-    && !!config.apiKey && requestCap !== null;
+    && !!config.apiKey && requestCap !== null && concurrencyLimit !== null;
   const expectedDigest = aiEnabled ? createHash('sha256').update(secret ?? '').digest() : null;
   let gemini: GeminiService | null = null;
   return createApiHandler({
     aiEnabled,
     reserveInference: aiEnabled ? createInferenceRequestCap(requestCap ?? 1) : () => false,
+    acquireInferenceSlot: aiEnabled ? createInferenceConcurrencyGate(concurrencyLimit ?? 1) : () => null,
     authorizeRequest: (request: Request) => {
       if (!expectedDigest) return false;
       const header = request.headers.get('authorization');

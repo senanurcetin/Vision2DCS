@@ -21,6 +21,7 @@ const setup = (options: { gemini?: GeminiService | null; allow?: boolean } = {})
     aiEnabled: true,
     authorizeRequest: () => true,
     reserveInference: () => true,
+    acquireInferenceSlot: () => () => {},
     log: () => {},
   });
   const call = (path: string, body?: unknown, method = 'POST') =>
@@ -134,6 +135,7 @@ describe('createApiHandler', () => {
       aiEnabled: true,
       authorizeRequest: () => true,
       reserveInference: () => true,
+    acquireInferenceSlot: () => () => {},
       log: recorded,
     });
     const response = await handler(new Request('http://localhost/api/analyze', {
