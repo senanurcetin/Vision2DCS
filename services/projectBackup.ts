@@ -29,7 +29,7 @@ function assertBackupInstrumentRows(value: unknown): asserts value is Record<str
     typeof item.tagName !== 'string' || !item.tagName.trim())) {
     throw new Error('Project backup contains an invalid instrument row.');
   }
-  const ids = value.map(item => item.id);
+  const ids = value.map(item => (item as Instrument).id);
   if (new Set(ids).size !== ids.length) {
     throw new Error('Project backup contains duplicate instrument IDs.');
   }
