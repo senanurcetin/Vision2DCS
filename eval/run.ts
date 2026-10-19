@@ -4,14 +4,13 @@
  *
  *   npm run eval            (reads GEMINI_API_KEY from the env or .env.local)
  */
-import { readdir, readFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { loadEnv } from 'vite';
 import { readServerConfig } from '../server/config';
 import { createGeminiService } from '../server/gemini';
-import { type ExpectedInstrument, scoreSample } from './score';
-import { type ExpectedSignalConnection, scoreExplicitSignalConnections } from './topology';
+import { scoreSample } from './score';
+import { scoreExplicitSignalConnections } from './topology';
+import { prepareBenchmarkSamples, requireEvaluationCallBudget } from './preflight';
 import { type BenchmarkTopologySample, buildTopologyBenchmarkReport } from './report';
 import { saveBenchmarkReport } from './reportFiles';
 
@@ -19,7 +18,11 @@ const samplesDir = path.resolve('samples');
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
 const main = async () => {
-  const config = readServerConfig({ ...loadEnv('', process.cwd(), ''), ...process.env });
+  // The complete fixture set must pass OFFLINE validation before Gemini is constructed.
+  const prepared = await prepareBenchmarkSamples(samplesDir);
+  const env = { ...loadEnv('', process.cwd(), ''), ...process.env };
+  requireEvaluationCallBudget(env.VISION2DCS_EVAL_MAX_CALLS, prepared.length);
+  const config = readServerConfig(env);
   if (!config.apiKey) {
     console.error('GEMINI_API_KEY is not set. Add it to .env.local or the environment.');
     process.exit(1);
@@ -27,22 +30,10 @@ const main = async () => {
   const gemini = createGeminiService({ ...config, apiKey: config.apiKey });
   console.log(`Model: ${config.analysisModel}\n`);
 
-  const names = (await readdir(samplesDir, { withFileTypes: true })).filter(d => d.isDirectory()).map(d => d.name).sort();
   const recordedSamples: BenchmarkTopologySample[] = [];
-  for (const name of names) {
-    const dir = path.join(samplesDir, name);
-    const expectedBytes = await readFile(path.join(dir, 'expected.json'));
-    const { instruments: expected, signalConnections } = JSON.parse(expectedBytes.toString('utf8')) as {
-      instruments: ExpectedInstrument[];
-      signalConnections?: ExpectedSignalConnection[];
-    };
-    if (!Array.isArray(signalConnections) || signalConnections.length === 0) {
-      throw new Error('Benchmark v2 requires annotated signal connections for ' + name);
-    }
-    // Validate human topology labels before making this sample's billable call.
-    scoreExplicitSignalConnections(signalConnections, expected.map(i => i.tagName), []);
-    const drawingBytes = await readFile(path.join(dir, 'drawing.png'));
-    const image = drawingBytes.toString('base64');
+  for (const fixture of prepared) {
+    const { name, drawing, instruments: expected, signalConnections } = fixture;
+    const image = drawing.toString('base64');
 
     const started = Date.now();
     const extracted = await gemini.analyze({ data: image, mimeType: 'image/png' });
@@ -53,8 +44,8 @@ const main = async () => {
       name,
       score,
       topologyScore: topology,
-      drawingSha256: createHash('sha256').update(drawingBytes).digest('hex'),
-      expectedSha256: createHash('sha256').update(expectedBytes).digest('hex'),
+      drawingSha256: fixture.drawingSha256,
+      expectedSha256: fixture.expectedSha256,
     });
 
     console.log(`${name}  (${((Date.now() - started) / 1000).toFixed(1)}s)`);
