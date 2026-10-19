@@ -78,3 +78,18 @@ export const parseNexusTagMapV1 = (json: string): NexusTagMapV1 => {
   }
   return validateNexusTagMapV1(parsed);
 };
+
+
+/**
+ * Serialize the exact manual download bytes, including pretty whitespace and
+ * the final newline. A compact JSON that fits 1 MiB can exceed 1 MiB after
+ * formatting; never offer a contract that the receiver will reject.
+ */
+export const serializeNexusTagMapV1 = (value: NexusTagMapV1): string => {
+  validateNexusTagMapV1(value);
+  const text = JSON.stringify(value, null, 2) + '\n';
+  if (new TextEncoder().encode(text).byteLength > MAX_NEXUS_TAG_MAP_BYTES) {
+    throw new Error('Formatted NEXUS Tag Map v1 exceeds the 1 MiB receiver limit.');
+  }
+  return text;
+};

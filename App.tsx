@@ -11,6 +11,7 @@ import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from '
 import { runSentinelAudit } from './services/otSentinelService';
 import { conceptExportBlockers } from './services/conceptExportGate';
 import { buildReviewedTagMap } from './services/nexusTagMap';
+import { serializeNexusTagMapV1 } from './services/nexusTagMapReader';
 import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
@@ -338,7 +339,7 @@ const App: React.FC = () => {
                       if (!currentProject || conceptExportDisabled) return;
                       try {
                         const contract = buildReviewedTagMap(currentProject, new Date().toISOString());
-                        downloadText(JSON.stringify(contract, null, 2) + '\n', 'nexus-tag-map-v1.json', 'application/json');
+                        downloadText(serializeNexusTagMapV1(contract), 'nexus-tag-map-v1.json', 'application/json');
                       } catch (error) {
                         setErrorMessage(error instanceof Error ? error.message : 'Tag-map export failed.');
                       }

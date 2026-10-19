@@ -48,3 +48,7 @@ Validation fixtures and deterministic ordering tests live in `services/nexusTagM
 ## Local read-only verification in Vision2DCS
 
 `services/nexusTagMapReader.ts` provides a pure offline reader for v1 JSON files. It enforces the 1 MiB byte ceiling, exact known object keys, canonical unique ISA-style tags, field limits, schema version, origin and a strictly read-only evidence declaration. `services/nexusTagMapReader.test.ts` exercises round-trips and hostile fixtures. A successful parse **does not establish who reviewed the data**, verify a supplier/import schema, or authorize process-control actions. No network, OT interface or automatic Ops-Copilot synchronization is performed.
+
+## Download byte-exactness
+
+The exporter checks a compact JSON object first, then `serializeNexusTagMapV1` validates the exact formatted bytes (including two-space indentation and the final newline) against the same 1 MiB receiver ceiling. The browser's manual NEXUS TAG MAP download uses this validated serialization; oversized pretty-printed documents fail closed instead of creating a file the consumer would reject. Offline round-trip and near-boundary cases are tested in `services/nexusTagMapReader.test.ts`.
