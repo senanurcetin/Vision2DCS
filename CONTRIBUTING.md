@@ -9,11 +9,11 @@ cp .env.example .env.local   # add GEMINI_API_KEY to analyze real drawings
 npm run dev
 ```
 
-The app runs without a key. Analysis requests then return a clear "no GEMINI_API_KEY configured" error.
+The offline app runs without a key. Billable AI routes are disabled by default and require explicit server enablement, an operator access token, and a provider key. Never run real-model evaluation without an approved API budget.
 
 ## Checks
 
-Run these before opening a pull request. CI runs the first three on every push and pull request to `main`.
+Run these before a milestone review. CI normally runs on commits to `main` and PR updates, but development batches may skip intermediate CI as explained below.
 
 | Command | What it checks |
 |---------|----------------|
@@ -21,6 +21,12 @@ Run these before opening a pull request. CI runs the first three on every push a
 | `npm test` | Unit and integration tests (Vitest) |
 | `npm run build` | Client bundle (`dist/`) and production server (`dist-server/`) |
 | `npm run eval` | Extraction quality on `samples/`. Needs a key, so run it when you change prompts, schemas or models |
+
+## Batched development and CI
+
+During exploratory engineering work, keep changes on a dedicated `work/*` branch rather than updating the release-candidate PR after every edit. Use `[skip ci]` on **intermediate** commits to skip GitHub Actions push/PR checks and CircleCI's normal VCS-push pipeline. Such commits are **unverified by CI** and must never be treated as release-ready. A skipped required GitHub check can remain Pending and prevent a PR from merging.
+
+At a meaningful integration milestone, finish local type-check/unit checks, consolidate changes into the review branch, and create a **fresh HEAD commit without any CI-skip directive**. Require the resulting exact-head GitHub Actions and CircleCI checks before approving or merging. When squashing, ensure **no `[skip ci]` text is inherited into the final merge commit message**, otherwise checks can be accidentally suppressed. Never disable main-branch protection or skip release acceptance to save CI minutes.
 
 ## Where things live
 
