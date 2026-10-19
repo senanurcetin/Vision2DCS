@@ -77,6 +77,16 @@ export const handleNodeApiRequest = async (
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   if (!url.pathname.startsWith('/api/')) return false;
 
+  // Reject declared over-limit uploads without buffering a 15+ MiB body.
+  // Drain the socket to keep the connection protocol in a consistent state.
+  const declaredLength = req.headers['content-length'];
+  if (typeof declaredLength === 'string' && /^[0-9]+$/.test(declaredLength) &&
+      Number(declaredLength) > MAX_BODY_BYTES) {
+    req.resume();
+    sendError(res, 413, 'Request body is too large.');
+    return true;
+  }
+
   let body: Buffer | undefined;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     try {

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
+import { request as httpRequest } from 'node:http';
 import { createAppServer } from './httpServer';
 import { MAX_BODY_BYTES } from './node';
 
@@ -52,6 +53,24 @@ describe('createAppServer', () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ authorization: 'Bearer ' + secret });
+  });
+
+  it('rejects a declared oversized payload before reading any body bytes', async () => {
+    const received = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const call = httpRequest(base + '/api/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'content-length': String(MAX_BODY_BYTES + 1) },
+      }, result => {
+        let body = '';
+        result.setEncoding('utf8');
+        result.on('data', chunk => { body += chunk; });
+        result.on('end', () => resolve({ status: result.statusCode ?? 0, body }));
+      });
+      call.on('error', reject);
+      call.flushHeaders(); // Deliberately never send the declared 15 MiB body.
+    });
+    expect(received.status).toBe(413);
+    expect(JSON.parse(received.body).error).toMatch(/too large/);
   });
 
   it('rejects request bodies over the limit', async () => {
