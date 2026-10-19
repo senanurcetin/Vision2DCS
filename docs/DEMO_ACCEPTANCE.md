@@ -48,3 +48,14 @@ engineering sign-off and secure TLS identity ingress remain separate gates.
 
 Do not merge this integration PR into a production/deployment branch based
 solely on an offline smoke test.
+
+## Public demo UX and deployment environment
+
+The dedicated static Vercel project (`vision2dcs-nexus-demo`) builds with
+`VITE_VISION2DCS_PUBLIC_DEMO=true` for production and preview deployments.
+This is a public non-secret build flag; it hides inoperative Gemini token,
+upload-to-AI and digital-twin actions on a frontend-only host. It does not
+grant backend access or enable inference. A separate empty-state CTA loads the
+existing synthetic flow-control fixture. Local dev/Node builds omit the flag
+and preserve guarded AI functionality. The browser smoke workflow runs
+both `developer` and `public` jobs to prevent mode regressions.
