@@ -39,7 +39,7 @@ try {
   const processButton = page.getByRole('button', { name: 'Process Diagram' });
   if (await processButton.isEnabled()) throw new Error('Unconfigured AI must be locked.');
   const sessionToken = 'offline-browser-smoke-token-32-characters-minimum';
-  await page.getByRole('textbox', { name: 'Operator-issued AI access token' }).fill(sessionToken);
+  await page.getByLabel('Operator-issued AI access token').fill(sessionToken);
   await page.getByRole('button', { name: 'Unlock AI' }).click();
   if (!(await processButton.isEnabled())) throw new Error('Operator token entry did not enable the AI button.');
   if (await page.evaluate(token => Object.values(localStorage).some(value => value.includes(token)), sessionToken)) {
