@@ -20,7 +20,7 @@ const req = (authorization?: string, route = '/api/analyze') =>
   });
 
 describe('default-deny, operator-gated Gemini ingress', () => {
-  const baseEnv = { GEMINI_API_KEY: 'invalid-test-key-not-called' };
+  const baseEnv = { GEMINI_API_KEY: 'invalid-test-key-not-called', VISION2DCS_AI_MAX_REQUESTS: '2' };
 
   it('fails closed for API key alone and for incomplete operator enablement', async () => {
     const configs = [
@@ -29,6 +29,9 @@ describe('default-deny, operator-gated Gemini ingress', () => {
       { ...baseEnv, VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: 'short' },
       { VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: token },
       { ...baseEnv, VISION2DCS_ENABLE_AI: 'TRUE', VISION2DCS_AI_ACCESS_TOKEN: token },
+      { ...baseEnv, VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: token, VISION2DCS_AI_MAX_REQUESTS: '0' },
+      { ...baseEnv, VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: token, VISION2DCS_AI_MAX_REQUESTS: '1001' },
+      { GEMINI_API_KEY: baseEnv.GEMINI_API_KEY, VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: token },
     ];
     for (const config of configs) {
       const handler = createGeminiApiHandler(config);
@@ -67,6 +70,7 @@ describe('default-deny, operator-gated Gemini ingress', () => {
     const allowRequest = vi.fn(() => true);
     const handler = createApiHandler({
       getGemini, allowRequest, aiEnabled: true, authorizeRequest: () => false,
+      reserveInference: () => true,
     });
     const denied = await handler(new Request('http://localhost/api/digital-twin', {
       method: 'POST', body: '{malformed-json',
@@ -77,6 +81,7 @@ describe('default-deny, operator-gated Gemini ingress', () => {
 
     const disabled = createApiHandler({
       getGemini, allowRequest, aiEnabled: false, authorizeRequest: () => true,
+      reserveInference: () => true,
     });
     expect((await disabled(req('Bearer ' + token), 'test-client'))?.status).toBe(503);
     expect(getGemini).not.toHaveBeenCalled();

@@ -8,8 +8,9 @@ const distDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..',
 const port = Number(process.env.PORT ?? 3000);
 
 if (!process.env.GEMINI_API_KEY || process.env.VISION2DCS_ENABLE_AI !== 'true' ||
-    (process.env.VISION2DCS_AI_ACCESS_TOKEN?.length ?? 0) < 32) {
-  console.warn('Paid AI routes are disabled; a provider key, explicit enablement and long operator access token are required.');
+    (process.env.VISION2DCS_AI_ACCESS_TOKEN?.length ?? 0) < 32 ||
+    !process.env.VISION2DCS_AI_MAX_REQUESTS) {
+  console.warn('Paid AI routes are disabled; a provider key, explicit enablement and long operator access token and positive VISION2DCS_AI_MAX_REQUESTS cap are required.');
 }
 
 createAppServer({ handler: createGeminiApiHandler(process.env), distDir })

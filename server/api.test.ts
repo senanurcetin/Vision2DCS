@@ -20,6 +20,7 @@ const setup = (options: { gemini?: GeminiService | null; allow?: boolean } = {})
     // Unit-test Gemini is an offline stub; explicitly opt in to exercise API validation.
     aiEnabled: true,
     authorizeRequest: () => true,
+    reserveInference: () => true,
     log: () => {},
   });
   const call = (path: string, body?: unknown, method = 'POST') =>

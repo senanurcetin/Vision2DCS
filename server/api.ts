@@ -17,6 +17,8 @@ export interface ApiDeps {
   /** Production server defaults to disabled; explicit operator opt-in required. */
   aiEnabled?: boolean;
   authorizeRequest?: (request: Request) => boolean;
+  /** Reserve one application-level provider invocation; must fail closed. */
+  reserveInference?: () => boolean;
   log?: (message: string, error: unknown) => void;
 }
 
@@ -40,7 +42,8 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
  * Web-standard handler for the /api routes. Returns null for paths it does not
  * own so hosts can fall through to static files.
  */
-export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, authorizeRequest = () => false, log = console.error }: ApiDeps) =>
+export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, authorizeRequest = () => false,
+  reserveInference = () => false, log = console.error }: ApiDeps) =>
   async (request: Request, clientId: string): Promise<Response | null> => {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;
@@ -72,6 +75,7 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
           return error(400, 'Image bytes do not match the declared JPEG, PNG or WebP format.');
         }
 
+        if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
         const instruments = await gemini.analyze({ data: image, mimeType });
         return json(200, { instruments });
       }
@@ -98,6 +102,7 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
         }
         summary.push({ tagName, description });
       }
+      if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
       const imageUrl = await gemini.digitalTwin(summary);
       return json(200, { imageUrl });
     } catch (e) {
