@@ -1,5 +1,6 @@
 import { Instrument, SignalType, PCS7BlockType } from "../types";
 import { isValidIsaTag } from "./tagParser";
+import { estimatedUnitCost } from "./bomCost";
 
 /** The model answered, but not with something usable. Safe to show to the user. */
 export class ModelOutputError extends Error {}
@@ -45,7 +46,7 @@ export const normalizeInstrument = (item: Record<string, unknown>, index: number
     reviewed: false,
     brand: asString(item.brand),
     model: asString(item.model),
-    estimatedCost: typeof cost === 'number' && Number.isFinite(cost) ? cost : undefined,
+    estimatedCost: estimatedUnitCost(cost),
     connectedTo: asString(item.connectedTo),
     safetyWarning: asString(item.safetyWarning),
   };

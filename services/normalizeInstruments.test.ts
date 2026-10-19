@@ -78,6 +78,9 @@ describe('normalizeInstrument', () => {
   it('drops non-numeric costs', () => {
     expect(normalizeInstrument({ estimatedCost: '1200' }, 0, 'p').estimatedCost).toBeUndefined();
     expect(normalizeInstrument({ estimatedCost: Number.NaN }, 0, 'p').estimatedCost).toBeUndefined();
+    expect(normalizeInstrument({ estimatedCost: -1 }, 0, 'p').estimatedCost).toBeUndefined();
+    expect(normalizeInstrument({ estimatedCost: 1e20 }, 0, 'p').estimatedCost).toBeUndefined();
+    expect(normalizeInstrument({ estimatedCost: 0 }, 0, 'p').estimatedCost).toBe(0);
   });
 });
 

@@ -1,4 +1,5 @@
 import { Instrument } from "../types";
+import { estimatedUnitCost, summarizeEstimatedBom } from "./bomCost";
 
 // Characters XML 1.0 does not allow at all (C0 controls other than tab, LF, CR).
 const INVALID_XML_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g;
@@ -64,11 +65,9 @@ export const downloadABBXML = (instruments: Instrument[], filename: string) => {
 
 /** Conceptual estimated BOM; all text reuses the existing formula-safe CSV encoding. */
 export const buildBomCsv = (instruments: Instrument[]): string => {
-  let total = 0;
+  const { total } = summarizeEstimatedBom(instruments);
   const rows = instruments.map(i => {
-    const cost = typeof i.estimatedCost === 'number' && Number.isFinite(i.estimatedCost)
-      ? i.estimatedCost : undefined;
-    if (cost !== undefined) total += cost;
+    const cost = estimatedUnitCost(i.estimatedCost);
     return [i.tagName, i.description, i.brand ?? '', i.model ?? '', cost?.toString() ?? ''];
   });
   return [
