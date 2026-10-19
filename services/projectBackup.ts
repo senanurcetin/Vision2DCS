@@ -1,5 +1,4 @@
-import { AnalysisProject } from '../types';
-import { normalizeInstrument } from './normalizeInstruments';
+import type { AnalysisProject, Instrument } from '../types';
 import { isProject, isStoredProject, isStoredInstrument } from './projectStore';
 // Pure linear base64 checker shared with the server-side image API.
 import { isValidCanonicalBase64 } from './base64';
@@ -65,8 +64,36 @@ const safeImage = (value: unknown): string => {
 };
 
 /**
- * Reads a backup file. The file is untrusted: the envelope is checked, every
- * instrument is re-normalized and the project gets a fresh id.
+ * Model normalization intentionally supplies missing labels and types.
+ * Backup restoration MUST NOT reuse it: an engineer's intentionally empty
+ * fields must remain empty, not become fabricated equipment descriptions.
+ * Only validated known schema keys are restored; user-review claims are reset.
+ */
+const restoreStoredInstrument = (raw: Record<string, unknown>, index: number, projectId: string): Instrument => {
+  // assertBackupInstrumentRows has already checked every required/optional type.
+  const row = raw as unknown as Instrument;
+  return {
+    id: projectId + '-inst-' + index,
+    tagName: row.tagName.trim().toUpperCase(),
+    equipmentType: row.equipmentType,
+    signalType: row.signalType,
+    description: row.description,
+    engineeringUnits: row.engineeringUnits,
+    pcs7BlockType: row.pcs7BlockType,
+    abb800xaObject: row.abb800xaObject,
+    confidence: row.confidence,
+    reviewed: false,
+    ...(row.brand !== undefined ? { brand: row.brand } : {}),
+    ...(row.model !== undefined ? { model: row.model } : {}),
+    ...(row.estimatedCost !== undefined ? { estimatedCost: row.estimatedCost } : {}),
+    ...(row.connectedTo !== undefined ? { connectedTo: row.connectedTo } : {}),
+    ...(row.safetyWarning !== undefined ? { safetyWarning: row.safetyWarning } : {}),
+  };
+};
+
+/**
+ * Reads an untrusted backup under a new project id. It validates the full
+ * project and typed instrument rows before reconstructing known fields.
  */
 export const parseProjectBackup = (text: string, newId: string): AnalysisProject => {
   assertProjectBackupBytes(new TextEncoder().encode(text).byteLength);
@@ -90,7 +117,7 @@ export const parseProjectBackup = (text: string, newId: string): AnalysisProject
     name: String(project.name).trim() || 'Imported project',
     date: typeof project.date === 'string' ? project.date : new Date().toLocaleString(),
     imageUrl: safeImage(project.imageUrl),
-    instruments: instruments.map((i, index) => normalizeInstrument(i, index, `${newId}-inst`)),
+    instruments: instruments.map((i, index) => restoreStoredInstrument(i, index, newId)),
     ...(twin ? { digitalTwinUrl: twin } : {}),
   };
 };

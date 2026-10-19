@@ -33,6 +33,51 @@ describe('project backup', () => {
     expect(restored).toMatchObject({ ...project, id: 'proj-2', instruments: [{ ...instrument, id: 'proj-2-inst-0' }] });
   });
 
+  it('preserves empty human-authored engineering fields instead of inventing defaults', () => {
+    const intentionallyBlank: Instrument = {
+      ...instrument,
+      tagName: '  pt-101 ',
+      equipmentType: '',
+      description: '',
+      engineeringUnits: '',
+      abb800xaObject: '',
+      brand: '',
+      model: '',
+      connectedTo: '',
+      safetyWarning: '',
+      estimatedCost: 0,
+    };
+    const imported = parseProjectBackup(
+      serializeProject({ ...project, instruments: [intentionallyBlank] }),
+      'reimport',
+    );
+    expect(imported.instruments[0]).toMatchObject({
+      id: 'reimport-inst-0',
+      tagName: 'PT-101',
+      equipmentType: '',
+      description: '',
+      engineeringUnits: '',
+      abb800xaObject: '',
+      brand: '',
+      model: '',
+      connectedTo: '',
+      safetyWarning: '',
+      estimatedCost: 0,
+      reviewed: false,
+    });
+  });
+
+  it('does not carry attacker-supplied extra JSON fields into editor history', () => {
+    const raw = JSON.stringify({
+      format: 'vision2dcs-project',
+      version: 1,
+      project: { ...project, instruments: [{ ...instrument, privateNetworkEndpoint: 'plc://secret' }] },
+    });
+    const row = parseProjectBackup(raw, 'clean').instruments[0];
+    expect(row).not.toHaveProperty('privateNetworkEndpoint');
+    expect(row.tagName).toBe('PT-101');
+  });
+
   it('discards an imported project claiming its instruments were already reviewed', () => {
     const tampered = { ...project, instruments: [{ ...instrument, reviewed: true }] };
     const imported = parseProjectBackup(serializeProject(tampered), 'reimport');

@@ -50,7 +50,7 @@ BOM costs are unverified estimates, not vendor quotations. Normalization, UI and
 
 ## Backup schema integrity
 
-Backup export and import share the stored-project typed-field validator. Every instrument must have all expected typed fields, supported classifications, a nonempty row ID and tag, and distinct editor row IDs. Incomplete, malformed or duplicate rows reject the entire backup rather than silently manufacturing tags or classifications. Imported backups still receive new editor IDs and any claimed human-reviewed flags are cleared. Existing unstructured legacy backups must be repaired at the source instead of best-effort coercion.
+Backup export and import share the stored-project typed-field validator. Every instrument must have all expected typed fields, supported classifications, a nonempty row ID and tag, and distinct editor row IDs. Incomplete, malformed or duplicate rows reject the entire backup rather than silently manufacturing tags or classifications. Imported backups still receive new editor IDs and any claimed human-reviewed flags are cleared. Unlike provider-output normalization, backup restoration preserves validated intentionally blank descriptions, units, equipment/object names, brands and model notes verbatim, without creating synthetic engineering values. Only documented instrument fields are restored; unknown extension keys are discarded. Existing unstructured legacy backups must be repaired at the source instead of best-effort coercion.
 
 ## Model Output Normalization
 
