@@ -59,6 +59,7 @@ export const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer
     let chunks: Buffer[] = [];
     let size = 0;
     let exceeded = false;
+    let ended = false;
     req.on('data', (chunk: Buffer) => {
       if (exceeded) return;
       size += chunk.length;
@@ -72,6 +73,7 @@ export const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer
       chunks.push(chunk);
     });
     req.on('end', () => {
+      ended = true;
       if (!exceeded) resolve(Buffer.concat(chunks));
     });
     req.on('error', reject);
@@ -79,7 +81,7 @@ export const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer
     // guaranteed on early disconnect; do not leave this promise unresolved.
     req.on('aborted', () => reject(new Error('Client upload aborted.')));
     req.on('close', () => {
-      if (!req.complete) reject(new Error('Client upload closed before completion.'));
+      if (!ended) reject(new Error('Client upload closed before completion.'));
     });
   });
 
