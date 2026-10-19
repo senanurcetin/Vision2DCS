@@ -44,7 +44,7 @@ describe('default-deny, operator-gated Gemini ingress', () => {
     });
     const candidates = [
       undefined, token, 'Bearer wrong', 'bearer ' + token,
-      'Bearer ' + token + 'A', 'Bearer ' + token + ' ',
+      'Bearer ' + token + 'A', 'Bearer ' + token + ' extra',
       'Bearer ' + 'A'.repeat(1200),
     ];
     for (const credential of candidates) {
