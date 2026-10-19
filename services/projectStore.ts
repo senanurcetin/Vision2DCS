@@ -29,7 +29,7 @@ const MAX_SAVED_INSTRUMENTS = 2000;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const isStoredInstrument = (value: unknown): boolean => {
+export const isStoredInstrument = (value: unknown): boolean => {
   if (!isRecord(value)) return false;
   return REQUIRED_INSTRUMENT_STRINGS.every(k => typeof value[k] === 'string')
     && typeof value.id === 'string' && value.id.length > 0
@@ -42,7 +42,7 @@ const isStoredInstrument = (value: unknown): boolean => {
         (typeof value.estimatedCost === 'number' && Number.isFinite(value.estimatedCost)));
 };
 
-const isStoredProject = (value: unknown): value is AnalysisProject => {
+export const isStoredProject = (value: unknown): value is AnalysisProject => {
   if (!isProject(value) || typeof value.date !== 'string' ||
       typeof value.imageUrl !== 'string' ||
       (value.digitalTwinUrl !== undefined && typeof value.digitalTwinUrl !== 'string') ||

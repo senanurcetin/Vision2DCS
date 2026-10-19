@@ -1,6 +1,6 @@
 import { AnalysisProject } from '../types';
 import { normalizeInstrument } from './normalizeInstruments';
-import { isProject } from './projectStore';
+import { isProject, isStoredProject, isStoredInstrument } from './projectStore';
 // Pure linear base64 checker shared with the server-side image API.
 import { isValidCanonicalBase64 } from './base64';
 
@@ -23,8 +23,16 @@ function assertBackupInstrumentCount(value: unknown): asserts value is unknown[]
 // instead of presenting a silently incomplete instrument list.
 function assertBackupInstrumentRows(value: unknown): asserts value is Record<string, unknown>[] {
   assertBackupInstrumentCount(value);
-  if (value.some(item => typeof item !== 'object' || item === null || Array.isArray(item))) {
+  // A backup must restore the exact typed engineering fields. Do not
+  // manufacture missing descriptions, tags or plausible classifications.
+  if (value.some(item => !isStoredInstrument(item) ||
+    typeof item.id !== 'string' || !item.id.trim() ||
+    typeof item.tagName !== 'string' || !item.tagName.trim())) {
     throw new Error('Project backup contains an invalid instrument row.');
+  }
+  const ids = value.map(item => item.id);
+  if (new Set(ids).size !== ids.length) {
+    throw new Error('Project backup contains duplicate instrument IDs.');
   }
 };
 export const assertProjectBackupBytes = (bytes: number): void => {
@@ -40,6 +48,7 @@ const checkedBackupText = (text: string): string => {
 
 export const serializeProject = (project: AnalysisProject): string => {
   assertBackupInstrumentRows(project.instruments);
+  if (!isStoredProject(project)) throw new Error('Project backup contains invalid project metadata.');
   return checkedBackupText(JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2));
 };
 
@@ -74,6 +83,7 @@ export const parseProjectBackup = (text: string, newId: string): AnalysisProject
   const project = envelope.project;
   const instruments: unknown = project.instruments;
   assertBackupInstrumentRows(instruments);
+  if (!isStoredProject(project)) throw new Error('The backup does not contain a valid project.');
   const twin = safeImage(project.digitalTwinUrl);
   return {
     id: newId,
