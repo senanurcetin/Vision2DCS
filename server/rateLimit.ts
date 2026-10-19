@@ -38,16 +38,23 @@ export const createRateLimiter = ({
     const t = now();
     if (t >= nextCleanupAt) {
       pruneExpiredRateLimitWindows(windows, t, windowMs);
-      nextCleanupAt = t + windowMs;
+      // Schedule cleanup at the earliest actual expiry. A fixed t+windowMs
+      // delay can deny new clients despite expired slots at maximum capacity.
+      nextCleanupAt = Infinity;
+      for (const { start } of windows.values()) {
+        nextCleanupAt = Math.min(nextCleanupAt, start + windowMs);
+      }
     }
     const current = windows.get(key);
     if (!current) {
       if (windows.size >= maxClients) return false;
       windows.set(key, { start: t, count: 1 });
+      nextCleanupAt = Math.min(nextCleanupAt, t + windowMs);
       return true;
     }
     if (t - current.start >= windowMs) {
       windows.set(key, { start: t, count: 1 });
+      nextCleanupAt = Math.min(nextCleanupAt, t + windowMs);
       return true;
     }
     if (current.count >= limit) return false;

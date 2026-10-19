@@ -46,4 +46,19 @@ describe('createRateLimiter', () => {
       { limit: 1.5, windowMs: 1 },
     ]) expect(() => createRateLimiter(options)).toThrow(RangeError);
   });
+
+  it('reclaims capacity at staggered client expirations without an extra full window', () => {
+    let t = 0;
+    const allow = createRateLimiter({ limit: 2, windowMs: 1000, maxClients: 2, now: () => t });
+    expect([allow('a'), allow('a'), allow('a')]).toEqual([true, true, false]);
+    t = 500;
+    expect(allow('b')).toBe(true);
+    expect(allow('c')).toBe(false);
+    t = 1000;
+    expect(allow('c')).toBe(true);
+    expect(allow('b')).toBe(true);
+    t = 1500;
+    expect(allow('d')).toBe(true);
+    expect(allow('b')).toBe(false);
+  });
 });
