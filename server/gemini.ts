@@ -4,7 +4,7 @@ import { Instrument } from "../types";
 import { ModelOutputError, parseInstrumentResponse } from "../services/normalizeInstruments";
 import { ServerConfig } from "./config";
 import { withRetry } from "./retry";
-import { decodedBase64Bytes, isValidCanonicalBase64 } from "./base64";
+import { decodedBase64Bytes, isValidCanonicalBase64, matchesRasterSignature } from "./base64";
 
 /**
  * Server-side Gemini orchestration for the Vision-to-DCS extraction.
@@ -109,6 +109,9 @@ export const createGeminiService = (config: ServerConfig & { apiKey: string }): 
       // external model response (large regex input can exhaust the JS stack).
       if (data.length > Math.ceil(MAX_RENDER_BYTES * 4 / 3) + 4) continue;
       if (decodedBase64Bytes(data) > MAX_RENDER_BYTES || !isValidCanonicalBase64(data)) continue;
+      // The model's declared MIME type is untrusted. Discard fake data URIs
+      // even if their base64 encoding and media-type label look plausible.
+      if (!matchesRasterSignature(data, mimeType)) continue;
       return `data:${mimeType};base64,${data}`;
     }
     throw new ModelOutputError("No valid raster image generated");

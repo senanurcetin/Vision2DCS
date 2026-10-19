@@ -138,7 +138,10 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
       // SDK errors may contain image content, provider URL parameters or
       // credentials. Never send raw error messages or stacks to telemetry.
       log(`Gemini request to ${route} failed:`, {
-        name: e instanceof Error ? e.name : 'UnknownError',
+        // SDK errors may control their own name property; never log it verbatim.
+        name: e instanceof ModelOutputError ? 'ModelOutputError'
+          : e instanceof TypeError ? 'TypeError'
+          : e instanceof Error ? 'Error' : 'UnknownError',
         status: typeof status === 'number' && Number.isSafeInteger(status) ? status : undefined,
       });
       if (status === 429) return error(503, 'The AI service is rate limited. Please try again shortly.');

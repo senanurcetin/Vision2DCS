@@ -128,6 +128,7 @@ describe('createApiHandler', () => {
 
   it('does not log original SDK error messages, plant data or credential fragments', async () => {
     const original = new Error('secret-provider-key and private plant P&ID');
+    original.name = 'secret-provider-key and private plant P&ID';
     const recorded = vi.fn();
     const handler = createApiHandler({
       getGemini: () => fakeGemini({ analyze: async () => { throw original; } }),
