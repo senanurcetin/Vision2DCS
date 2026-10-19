@@ -12,7 +12,9 @@ import {
 // Base64 inflates the 10 MB image limit by a third, plus JSON overhead.
 export const MAX_BODY_BYTES = 15 * 1024 * 1024;
 
-export type ApiHandler = (request: Request, clientId: string) => Promise<Response | null>;
+export type ApiHandler = ((request: Request, clientId: string) => Promise<Response | null>) & {
+  preflight?: (request: Request) => Response | null;
+};
 
 /** Live provider requests require explicit enablement and a separate operator token. */
 export const createGeminiApiHandler = (env: Record<string, string | undefined>): ApiHandler => {
@@ -92,6 +94,24 @@ export const handleNodeApiRequest = async (
     return true;
   }
 
+  const headers = {
+    'content-type': String(req.headers['content-type'] ?? ''),
+    ...(typeof req.headers.authorization === 'string'
+      ? { authorization: req.headers.authorization }
+      : {}),
+  };
+
+  // Refuse unauthorized or disabled AI calls before allocating upload buffers.
+  if (handler.preflight) {
+    const refused = handler.preflight(new Request(url, { method: req.method, headers }));
+    if (refused) {
+      req.resume();
+      res.writeHead(refused.status, Object.fromEntries(refused.headers));
+      res.end(Buffer.from(await refused.arrayBuffer()));
+      return true;
+    }
+  }
+
   let body: Buffer | undefined;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     try {
@@ -105,12 +125,7 @@ export const handleNodeApiRequest = async (
 
   const request = new Request(url, {
     method: req.method,
-    headers: {
-      'content-type': String(req.headers['content-type'] ?? ''),
-      ...(typeof req.headers.authorization === 'string'
-        ? { authorization: req.headers.authorization }
-        : {}),
-    },
+    headers,
     body: body ? new Uint8Array(body) : undefined,
   });
   const response = await handler(request, req.socket.remoteAddress ?? 'unknown');

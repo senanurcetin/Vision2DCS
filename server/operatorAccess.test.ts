@@ -90,6 +90,20 @@ describe('default-deny, operator-gated Gemini ingress', () => {
     expect(allowRequest).not.toHaveBeenCalled();
   });
 
+  it('performs header-only authorization without consuming quotas', () => {
+    const handler = createGeminiApiHandler({
+      ...baseEnv, VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: token,
+    });
+    const valid = new Request('http://localhost/api/analyze', {
+      method: 'POST', headers: { authorization: 'Bearer ' + token },
+    });
+    expect(handler.preflight?.(new Request('http://localhost/api/analyze', { method: 'POST' }))?.status).toBe(401);
+    expect(handler.preflight?.(valid)).toBeNull();
+    expect(handler.preflight?.(new Request('http://localhost/index.html'))).toBeNull();
+    expect(handler.preflight?.(new Request('http://localhost/api/no-such-route'))?.status).toBe(404);
+    expect(handler.preflight?.(new Request('http://localhost/api/analyze'))?.status).toBe(405);
+  });
+
   it('requires POST and returns 404 for unknown API routes without authenticating', async () => {
     const handler = createGeminiApiHandler({
       ...baseEnv, VISION2DCS_ENABLE_AI: 'true', VISION2DCS_AI_ACCESS_TOKEN: token,

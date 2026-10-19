@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { request as httpRequest } from 'node:http';
 import { createAppServer } from './httpServer';
-import { MAX_BODY_BYTES } from './node';
+import { MAX_BODY_BYTES, createGeminiApiHandler } from './node';
 
 let server: Server;
 let base: string;
@@ -102,5 +102,40 @@ describe('createAppServer', () => {
 
   it('answers 400 for malformed percent-encoding', async () => {
     expect((await fetch(`${base}/%E0%A4%A`)).status).toBe(400);
+  });
+});
+
+
+describe('preflight rejects non-authenticated uploads before body buffering', () => {
+  it('returns 401 even when a large declared body has not yet been sent', async () => {
+    const handler = createGeminiApiHandler({
+      GEMINI_API_KEY: 'offline-test-provider-key',
+      VISION2DCS_ENABLE_AI: 'true',
+      VISION2DCS_AI_ACCESS_TOKEN: 'offline-long-operator-token-for-testing-123456',
+      VISION2DCS_AI_MAX_REQUESTS: '1',
+    });
+    const protectedServer = createAppServer({ handler, distDir });
+    await new Promise<void>(resolve => protectedServer.listen(0, '127.0.0.1', resolve));
+    const port = (protectedServer.address() as AddressInfo).port;
+    try {
+      const status = await new Promise<number>((resolve, reject) => {
+        const call = httpRequest('http://127.0.0.1:' + port + '/api/analyze', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'content-length': '1000000' },
+        }, response => {
+          response.resume();
+          response.on('end', () => {
+            call.destroy();
+            resolve(response.statusCode ?? 0);
+          });
+        });
+        call.on('error', reject);
+        call.setTimeout(4000, () => call.destroy(new Error('Preflight timed out.')));
+        call.flushHeaders(); // No request body is ever transmitted.
+      });
+      expect(status).toBe(401);
+    } finally {
+      await new Promise<void>(resolve => protectedServer.close(() => resolve()));
+    }
   });
 });

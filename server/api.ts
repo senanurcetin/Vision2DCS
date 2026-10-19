@@ -52,17 +52,24 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
  * own so hosts can fall through to static files.
  */
 export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, authorizeRequest = () => false,
-  reserveInference = () => false, acquireInferenceSlot = () => null, log = console.error }: ApiDeps) =>
-  async (request: Request, clientId: string): Promise<Response | null> => {
+  reserveInference = () => false, acquireInferenceSlot = () => null, log = console.error }: ApiDeps) => {
+  /** Header-only gate; does not spend quotas or consume the request body. */
+  const preflight = (request: Request): Response | null => {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;
-
-    const route = pathname === '/api/analyze' || pathname === '/api/digital-twin' ? pathname : null;
-    if (!route) return error(404, 'Not found');
+    if (pathname !== '/api/analyze' && pathname !== '/api/digital-twin') return error(404, 'Not found');
     if (request.method !== 'POST') return error(405, 'Method not allowed');
-    // Refuse anonymous paid inference BEFORE rate limiting, parsing or provider access.
     if (!aiEnabled) return error(503, 'AI endpoints are disabled by server configuration.');
     if (!authorizeRequest(request)) return error(401, 'AI access token is missing or invalid.');
+    return null;
+  };
+
+  const handle = async (request: Request, clientId: string): Promise<Response | null> => {
+    const { pathname } = new URL(request.url);
+    if (!pathname.startsWith('/api/')) return null;
+    const rejected = preflight(request);
+    if (rejected) return rejected;
+    const route = pathname;
     if (!allowRequest(clientId)) return error(429, 'Too many requests. Please wait a minute and try again.');
 
     const gemini = getGemini();
@@ -142,3 +149,5 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
       return error(502, 'The AI service request failed.');
     }
   };
+  return Object.assign(handle, { preflight });
+};
