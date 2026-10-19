@@ -34,6 +34,20 @@ try {
   });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
+  // Operator bearer is needed only for explicitly authorized paid inference.
+  // The local/offline engineering workflow still works when the token is absent.
+  const processButton = page.getByRole('button', { name: 'Process Diagram' });
+  if (await processButton.isEnabled()) throw new Error('Unconfigured AI must be locked.');
+  const sessionToken = 'offline-browser-smoke-token-32-characters-minimum';
+  await page.getByRole('textbox', { name: 'Operator-issued AI access token' }).fill(sessionToken);
+  await page.getByRole('button', { name: 'Unlock AI' }).click();
+  if (!(await processButton.isEnabled())) throw new Error('Operator token entry did not enable the AI button.');
+  if (await page.evaluate(token => Object.values(localStorage).some(value => value.includes(token)), sessionToken)) {
+    throw new Error('An operator token leaked into browser localStorage.');
+  }
+  await page.getByRole('button', { name: 'Clear AI token' }).click();
+  if (await processButton.isEnabled()) throw new Error('Clearing access must lock AI again.');
+
   const backupInput = page.locator('input[accept="application/json,.json"]');
   await backupInput.setInputFiles({
     name: 'offline-project.vision2dcs.json',
