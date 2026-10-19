@@ -20,6 +20,9 @@ import { createSyntheticDemoProject } from './services/offlineDemo';
 type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
+/** Public static Vercel build: never show token-based operations without API routes. */
+const IS_PUBLIC_DEMO = import.meta.env.VITE_VISION2DCS_PUBLIC_DEMO === 'true';
+
 const App: React.FC = () => {
   const { projects, currentProject, selectProject, addProject, updateProject, editInstruments,
     removeProject, undoInstruments, redoInstruments, canUndo, canRedo, storageWarning } = useProjects();
@@ -33,6 +36,7 @@ const App: React.FC = () => {
   const [aiAccessConfigured, setAiAccessConfigured] = useState(false);
 
   const applyAiAccessToken = () => {
+    if (IS_PUBLIC_DEMO) return;
     const candidate = aiTokenDraft.trim();
     if (candidate.length < 32) {
       setErrorMessage('An operator-issued AI access token of at least 32 characters is required.');
@@ -67,6 +71,7 @@ const App: React.FC = () => {
   const conceptExportDisabled = !currentProject || exportBlockers.length > 0;
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (IS_PUBLIC_DEMO) return;
     const file = event.target.files?.[0];
     // Reset so picking the same file again still triggers a change event
     event.target.value = '';
@@ -111,6 +116,7 @@ const App: React.FC = () => {
   };
 
   const createDigitalTwin = async () => {
+    if (IS_PUBLIC_DEMO) return;
     if (!currentProject || currentProject.instruments.length === 0) return;
     setIsGeneratingTwin(true);
     setErrorMessage(null);
@@ -203,6 +209,12 @@ const App: React.FC = () => {
             <button onClick={() => setLeftPanelView('draft_hmi')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${leftPanelView === 'draft_hmi' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>HMI Topology</button>
             {currentProject?.digitalTwinUrl && <button onClick={() => setLeftPanelView('twin')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${leftPanelView === 'twin' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>Digital Twin</button>}
           </div>
+          {IS_PUBLIC_DEMO ? (
+            <div role="status" className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold text-cyan-100">
+              Offline demo · no AI calls
+            </div>
+          ) : (
+            <>
           <button 
             disabled={!currentProject || !aiAccessConfigured || isGeneratingTwin}
             onClick={createDigitalTwin}
@@ -234,6 +246,8 @@ const App: React.FC = () => {
           <button disabled={!aiAccessConfigured || isAnalyzing} title={!aiAccessConfigured ? 'Set an operator AI access token first' : 'Analyze a P&ID drawing'} onClick={() => fileInputRef.current?.click()} className="nexus-primary-action rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
             Process Diagram
           </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -247,6 +261,12 @@ const App: React.FC = () => {
           <button onClick={() => setErrorMessage(null)} aria-label="Dismiss error" className="text-red-300/70 hover:text-red-200">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
+        </div>
+      )}
+
+      {currentProject?.id.startsWith('demo-') && (
+        <div role="status" className="border-b border-cyan-400/20 bg-cyan-400/5 px-5 py-2 text-[11px] text-cyan-100">
+          Synthetic sample · five draft tags · no live plant connection · human review required before concept exports
         </div>
       )}
 
@@ -302,7 +322,27 @@ const App: React.FC = () => {
                 <div className="p-12 min-w-full min-h-full flex items-center justify-center">
                   <img src={currentProject.imageUrl} alt={`P&ID drawing: ${currentProject.name}`} className="max-w-full h-auto shadow-2xl rounded" style={{ transform: `scale(${zoom})` }} />
                 </div>
-              ) : <div className="h-full flex items-center justify-center text-slate-700 text-sm italic">No diagram loaded</div>}
+              ) : (
+                <section aria-label="Demo welcome" className="relative flex min-h-full items-center justify-center p-5 sm:p-10">
+                  <div className="w-full max-w-xl rounded-3xl border border-cyan-400/20 bg-slate-900/85 px-6 py-9 text-center shadow-2xl sm:px-10 sm:py-12">
+                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10">
+                      <img src="/nexus-x.svg" alt="" aria-hidden="true" className="h-11 w-11" />
+                    </div>
+                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-300">NEXUS · Engineering concept studio</p>
+                    <h2 className="mb-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Explore a P&amp;ID engineering workflow</h2>
+                    <p className="mx-auto mb-7 max-w-md text-sm leading-relaxed text-slate-300">
+                      Open a synthetic reactor-feed diagram with five editable instrument tags, topology and audit views. No real plant data or AI key required.
+                    </p>
+                    <button type="button" onClick={loadSyntheticDemo} className="nexus-primary-action rounded-full px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition-transform hover:scale-[1.02]">
+                      Explore sample project
+                    </button>
+                    <p className="mt-6 text-xs leading-relaxed text-slate-400">
+                      1. Review tags &nbsp;·&nbsp; 2. Inspect HMI topology &nbsp;·&nbsp; 3. Check BOM &amp; export gates
+                    </p>
+                    <p className="mt-3 text-[11px] text-slate-500">Concept demonstration only · Not connected to industrial equipment</p>
+                  </div>
+                </section>
+              )}
               <div className="absolute top-4 left-4 flex bg-slate-900/80 rounded-full border border-slate-700 p-1">
                 <button onClick={() => setZoom(z => Math.max(0.2, z - 0.2))} className="w-8 h-8 flex items-center justify-center hover:bg-slate-700 rounded-full"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" /></svg></button>
                 <div className="px-4 flex items-center text-[10px] font-bold text-slate-400">{Math.round(zoom * 100)}%</div>

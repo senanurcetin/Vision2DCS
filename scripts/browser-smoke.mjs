@@ -34,22 +34,32 @@ try {
   });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
-  // Operator bearer is needed only for explicitly authorized paid inference.
-  // The local/offline engineering workflow still works when the token is absent.
-  const processButton = page.getByRole('button', { name: 'Process Diagram' });
-  if (await processButton.isEnabled()) throw new Error('Unconfigured AI must be locked.');
-  const sessionToken = 'offline-browser-smoke-token-32-characters-minimum';
-  await page.getByLabel('Operator-issued AI access token').fill(sessionToken);
-  await page.getByRole('button', { name: 'Unlock AI' }).click();
-  if (!(await processButton.isEnabled())) throw new Error('Operator token entry did not enable the AI button.');
-  if (await page.evaluate(token => Object.values(localStorage).some(value => value.includes(token)), sessionToken)) {
-    throw new Error('An operator token leaked into browser localStorage.');
+  // Test both the local developer mode and the static public demo build.
+  const publicMode = process.env.VITE_VISION2DCS_PUBLIC_DEMO === 'true';
+  if (publicMode) {
+    if (await page.getByRole('button', { name: 'Process Diagram' }).count()) {
+      throw new Error('A public static demo must not expose a nonfunctional paid AI action.');
+    }
+    if (await page.getByRole('button', { name: 'Unlock AI' }).count()) {
+      throw new Error('A public static demo must not ask visitors for an operator secret.');
+    }
+    await page.getByText('Offline demo · no AI calls').waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: 'Explore sample project' }).click();
+  } else {
+    // Local operators can unlock AI without persisting their token in the browser.
+    const processButton = page.getByRole('button', { name: 'Process Diagram' });
+    if (await processButton.isEnabled()) throw new Error('Unconfigured AI must be locked.');
+    const sessionToken = 'offline-browser-smoke-token-32-characters-minimum';
+    await page.getByLabel('Operator-issued AI access token').fill(sessionToken);
+    await page.getByRole('button', { name: 'Unlock AI' }).click();
+    if (!(await processButton.isEnabled())) throw new Error('Operator token entry did not enable the AI button.');
+    if (await page.evaluate(token => Object.values(localStorage).some(value => value.includes(token)), sessionToken)) {
+      throw new Error('An operator token leaked into browser localStorage.');
+    }
+    await page.getByRole('button', { name: 'Clear AI token' }).click();
+    if (await processButton.isEnabled()) throw new Error('Clearing access must lock AI again.');
+    await page.getByRole('button', { name: 'Load sample P&ID' }).click();
   }
-  await page.getByRole('button', { name: 'Clear AI token' }).click();
-  if (await processButton.isEnabled()) throw new Error('Clearing access must lock AI again.');
-
-  // First-time visitors can explore a real bundled synthetic P&ID without AI.
-  await page.getByRole('button', { name: 'Load sample P&ID' }).click();
   const sampleRows = page.locator('table tbody tr');
   await sampleRows.first().locator('input').first().waitFor({ state: 'visible' });
   if (await sampleRows.count() !== 5) throw new Error('Offline sample must contain five synthetic instrument rows.');
@@ -59,6 +69,10 @@ try {
   if (await page.getByRole('button', { name: 'NEXUS TAG MAP' }).isEnabled()) {
     throw new Error('Synthetic example must still require engineer review.');
   }
+  await page.getByText('Synthetic sample · five draft tags', { exact: false }).waitFor();
+  // Check that the example stays editable and its HMI topology is accessible.
+  await page.getByRole('button', { name: 'HMI Topology' }).click();
+  await page.getByRole('button', { name: 'P&ID View' }).click();
 
   const backupInput = page.locator('input[accept="application/json,.json"]');
   await backupInput.setInputFiles({
