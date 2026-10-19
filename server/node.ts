@@ -16,7 +16,7 @@ export const createGeminiApiHandler = (env: Record<string, string | undefined>):
   const secret = env.VISION2DCS_AI_ACCESS_TOKEN;
   const aiEnabled = env.VISION2DCS_ENABLE_AI === 'true'
     && typeof secret === 'string' && secret.length >= 32 && !!config.apiKey;
-  const expectedDigest = aiEnabled ? createHash('sha256').update(secret).digest() : null;
+  const expectedDigest = aiEnabled ? createHash('sha256').update(secret ?? '').digest() : null;
   let gemini: GeminiService | null = null;
   return createApiHandler({
     aiEnabled,
