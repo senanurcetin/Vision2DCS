@@ -54,7 +54,7 @@ function validatedTopologyScore(v: unknown): TopologyScore {
 
 function verifySummary(
   declared: unknown,
-  recalculated: Record<string, number>,
+  recalculated: Summary | TopologySummary,
   keys: readonly string[],
   kind: string,
 ): void {
@@ -62,7 +62,7 @@ function verifySummary(
   for (const key of keys) {
     const actual = declared[key];
     if (typeof actual !== 'number' || !Number.isFinite(actual) ||
-        actual < 0 || actual > 1 || Math.abs(actual - recalculated[key]) > 1e-9) {
+        actual < 0 || actual > 1 || Math.abs(actual - (recalculated as unknown as Record<string, number>)[key]) > 1e-9) {
       throw new Error('Benchmark ' + kind + ' summary does not match sample evidence.');
     }
   }
