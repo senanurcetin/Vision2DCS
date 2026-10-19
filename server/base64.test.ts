@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodedBase64Bytes, isValidCanonicalBase64 } from './base64';
+import { decodedBase64Bytes, isValidCanonicalBase64, matchesRasterSignature } from './base64';
 
 describe('large safe inline base64 inputs', () => {
   it('accepts exact canonical padded and unpadded full groups', () => {
@@ -9,6 +9,16 @@ describe('large safe inline base64 inputs', () => {
       expect(isValidCanonicalBase64(value)).toBe(true);
       expect(decodedBase64Bytes(value)).toBe(bytes);
     }
+  });
+
+  it('matches raster signatures only when declared MIME agrees with the bytes', () => {
+    const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO8mSY8AAAAASUVORK5CYII=';
+    expect(matchesRasterSignature(png, 'image/png')).toBe(true);
+    expect(matchesRasterSignature(png, 'image/jpeg')).toBe(false);
+    expect(matchesRasterSignature('AQID', 'image/png')).toBe(false);
+    const webp = Buffer.from('RIFF1234WEBPVP8 0000').toString('base64');
+    expect(matchesRasterSignature(webp, 'image/webp')).toBe(true);
+    expect(matchesRasterSignature(webp, 'image/png')).toBe(false);
   });
 
   it('rejects short groups, misplaced padding, newlines and URL-safe variants', () => {

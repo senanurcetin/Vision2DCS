@@ -10,6 +10,7 @@ const harness = vi.hoisted(() => ({
   csv: vi.fn(),
   abb: vi.fn(),
   bom: vi.fn(),
+  setAiAccessToken: vi.fn(),
 }));
 
 vi.mock('./hooks/useProjects', () => ({
@@ -22,6 +23,12 @@ vi.mock('./hooks/useProjects', () => ({
       addProject: vi.fn(),
       updateProject: (id: string, update: (p: AnalysisProject) => AnalysisProject) =>
         setProject(p => p?.id === id ? update(p) : p),
+      editInstruments: (id: string, change: (rows: Instrument[]) => Instrument[]) =>
+        setProject(p => p?.id === id ? { ...p, instruments: change(p.instruments) } : p),
+      undoInstruments: vi.fn(),
+      redoInstruments: vi.fn(),
+      canUndo: false,
+      canRedo: false,
       removeProject: vi.fn(),
       storageWarning: null,
     };
@@ -31,6 +38,7 @@ vi.mock('./hooks/useProjects', () => ({
 vi.mock('./services/geminiService', () => ({
   analyzePIDImage: vi.fn(),
   generateDigitalTwin: vi.fn(),
+  setAiAccessToken: harness.setAiAccessToken,
 }));
 vi.mock('./services/exportService', () => ({
   downloadText: harness.downloadText,
@@ -62,6 +70,7 @@ beforeEach(async () => {
   harness.csv.mockReset();
   harness.abb.mockReset();
   harness.bom.mockReset();
+  harness.setAiAccessToken.mockReset();
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -149,6 +158,17 @@ describe('instrument review/export DOM acceptance', () => {
     expect(sidebar?.hasAttribute('inert')).toBe(true);
   });
 
+  it('requires a separate operator token before enabling billable AI actions', async () => {
+    harness.project = fixture([instrument]);
+    await act(async () => root.render(<App />));
+    expect(button('Process Diagram').disabled).toBe(true);
+    expect(button('Generate Digital Twin').disabled).toBe(true);
+    expect(host.querySelector<HTMLInputElement>('input[type="password"][aria-label="Operator-issued AI access token"]')).not.toBeNull();
+    await act(async () => button('Unlock AI').click());
+    expect(host.textContent).toContain('at least 32 characters');
+    expect(harness.setAiAccessToken).not.toHaveBeenCalled();
+  });
+
   it('shows NEXUS branding and responsive engineering panels', async () => {
     harness.project = fixture([instrument]);
     await act(async () => root.render(<App />));
@@ -156,6 +176,8 @@ describe('instrument review/export DOM acceptance', () => {
     expect(host.querySelector<HTMLImageElement>('img[aria-hidden="true"]')?.getAttribute('src')).toBe('/nexus-x.svg');
     expect(host.querySelector('header')?.className).toContain('nexus-app-header');
     expect(host.querySelector('.nexus-engineering-panel')?.className).toContain('lg:w-1/2');
+    expect(host.querySelector('button[aria-label="Undo instrument edit"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Redo instrument edit"]')).not.toBeNull();
   });
 
 });

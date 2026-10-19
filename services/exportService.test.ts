@@ -129,6 +129,18 @@ describe('buildBomCsv', () => {
     expect(result).toContain('Total;;;;1850.5');
     expect(result).not.toContain('NaN');
   });
+  it('never subtracts invalid negative estimates from BOM total', () => {
+    const rows = parseCsv(buildBomCsv([
+      inst({ tagName: 'PT-101', estimatedCost: -500 }),
+      inst({ tagName: 'TT-101', estimatedCost: 25 }),
+      inst({ tagName: 'LT-101', estimatedCost: 1e20 }),
+    ]));
+    expect(rows[1][4]).toBe('');
+    expect(rows[2][4]).toBe('25');
+    expect(rows[3][4]).toBe('');
+    expect(rows[4]).toEqual(['Total', '', '', '', '25']);
+  });
+
   it('has an explicit zero total without instruments', () => {
     expect(buildBomCsv([])).toContain('Total;;;;0');
   });

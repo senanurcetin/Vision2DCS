@@ -4,13 +4,14 @@ import InstrumentTable from './components/InstrumentTable';
 import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
 import { Instrument, AnalysisProject } from './types';
-import { analyzePIDImage, generateDigitalTwin } from './services/geminiService';
+import { analyzePIDImage, generateDigitalTwin, setAiAccessToken } from './services/geminiService';
 import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText } from './services/exportService';
 import { normalizeInstrument } from './services/normalizeInstruments';
 import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
 import { conceptExportBlockers } from './services/conceptExportGate';
 import { buildReviewedTagMap } from './services/nexusTagMap';
+import { serializeNexusTagMapV1 } from './services/nexusTagMapReader';
 import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
@@ -19,11 +20,34 @@ type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
 const App: React.FC = () => {
-  const { projects, currentProject, selectProject, addProject, updateProject, removeProject, storageWarning } = useProjects();
+  const { projects, currentProject, selectProject, addProject, updateProject, editInstruments,
+    removeProject, undoInstruments, redoInstruments, canUndo, canRedo, storageWarning } = useProjects();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingTwin, setIsGeneratingTwin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Only the token entry field has React state; the committed secret stays in
+  // ephemeral module memory and never in browser persistence or project data.
+  const [aiTokenDraft, setAiTokenDraft] = useState('');
+  const [aiAccessConfigured, setAiAccessConfigured] = useState(false);
+
+  const applyAiAccessToken = () => {
+    const candidate = aiTokenDraft.trim();
+    if (candidate.length < 32) {
+      setErrorMessage('An operator-issued AI access token of at least 32 characters is required.');
+      return;
+    }
+    setAiAccessToken(candidate);
+    setAiTokenDraft('');
+    setAiAccessConfigured(true);
+    setErrorMessage(null);
+  };
+
+  const clearAiAccessToken = () => {
+    setAiAccessToken(null);
+    setAiTokenDraft('');
+    setAiAccessConfigured(false);
+  };
   const [zoom, setZoom] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabView>('list');
@@ -91,32 +115,25 @@ const App: React.FC = () => {
 
   const updateInstrument = useCallback((id: string, updates: Partial<Instrument>) => {
     if (!currentProjectId) return;
-    updateProject(currentProjectId, p => ({
-      ...p,
-      instruments: p.instruments.map(inst => inst.id === id ? applyInstrumentUpdate(inst, updates) : inst)
-    }));
-  }, [currentProjectId, updateProject]);
+    editInstruments(currentProjectId, instruments =>
+      instruments.map(inst => inst.id === id ? applyInstrumentUpdate(inst, updates) : inst));
+  }, [currentProjectId, editInstruments]);
 
   const deleteInstrument = useCallback((id: string) => {
     if (!currentProjectId) return;
-    updateProject(currentProjectId, p => ({
-      ...p,
-      instruments: p.instruments.filter(inst => inst.id !== id)
-    }));
-  }, [currentProjectId, updateProject]);
+    editInstruments(currentProjectId, instruments => instruments.filter(inst => inst.id !== id));
+  }, [currentProjectId, editInstruments]);
 
   const addInstrument = useCallback(() => {
     if (!currentProjectId) return;
-    updateProject(currentProjectId, p => ({
-      ...p,
-      // Starts as Unknown/low confidence so the audit asks for it to be completed
-      instruments: [...p.instruments, normalizeInstrument(
-        { description: 'Manually added instrument', equipmentType: 'Manual' },
-        p.instruments.length,
-        `manual-${Date.now()}`,
-      )],
-    }));
-  }, [currentProjectId, updateProject]);
+    const prefix = 'manual-' + Date.now();
+    editInstruments(currentProjectId, instruments => [
+      ...instruments,
+      // Manual entries still start as Unknown/low and require explicit review.
+      normalizeInstrument({ description: 'Manually added instrument', equipmentType: 'Manual' },
+        instruments.length, prefix),
+    ]);
+  }, [currentProjectId, editInstruments]);
 
   const exportBackup = (project: AnalysisProject) => {
     try {
@@ -173,15 +190,33 @@ const App: React.FC = () => {
             {currentProject?.digitalTwinUrl && <button onClick={() => setLeftPanelView('twin')} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${leftPanelView === 'twin' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>Digital Twin</button>}
           </div>
           <button 
-            disabled={!currentProject || isGeneratingTwin}
+            disabled={!currentProject || !aiAccessConfigured || isGeneratingTwin}
             onClick={createDigitalTwin}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all ${isGeneratingTwin ? 'bg-slate-800 text-slate-500 animate-pulse' : 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             {isGeneratingTwin ? 'Imagining Twin...' : 'Generate Digital Twin'}
           </button>
+          <div className="flex flex-wrap items-center gap-2" aria-label="AI access controls">
+            {aiAccessConfigured ? (
+              <>
+                <span role="status" className="text-[10px] font-semibold text-emerald-300">AI token set for this tab</span>
+                <button type="button" onClick={clearAiAccessToken} className="rounded-lg border border-slate-600 px-3 py-2 text-xs text-slate-300 hover:border-cyan-400">Clear AI token</button>
+              </>
+            ) : (
+              <>
+                <label htmlFor="vision-ai-token" className="text-[10px] text-slate-300">AI access</label>
+                <input id="vision-ai-token" type="password" autoComplete="off" spellCheck={false}
+                  aria-label="Operator-issued AI access token" value={aiTokenDraft}
+                  onChange={e => setAiTokenDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') applyAiAccessToken(); }}
+                  placeholder="Operator access token" className="w-36 rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-white" />
+                <button type="button" onClick={applyAiAccessToken} className="rounded-lg border border-cyan-700 px-3 py-2 text-xs font-semibold text-cyan-200">Unlock AI</button>
+              </>
+            )}
+          </div>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp" />
-          <button onClick={() => fileInputRef.current?.click()} className="nexus-primary-action rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition-transform active:scale-95">
+          <button disabled={!aiAccessConfigured || isAnalyzing} title={!aiAccessConfigured ? 'Set an operator AI access token first' : 'Analyze a P&ID drawing'} onClick={() => fileInputRef.current?.click()} className="nexus-primary-action rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
             Process Diagram
           </button>
         </div>
@@ -304,7 +339,7 @@ const App: React.FC = () => {
                       if (!currentProject || conceptExportDisabled) return;
                       try {
                         const contract = buildReviewedTagMap(currentProject, new Date().toISOString());
-                        downloadText(JSON.stringify(contract, null, 2) + '\n', 'nexus-tag-map-v1.json', 'application/json');
+                        downloadText(serializeNexusTagMapV1(contract), 'nexus-tag-map-v1.json', 'application/json');
                       } catch (error) {
                         setErrorMessage(error instanceof Error ? error.message : 'Tag-map export failed.');
                       }
@@ -334,7 +369,14 @@ const App: React.FC = () => {
            <div className="flex-1 overflow-hidden flex flex-col p-6">
               <div className="flex-1 overflow-hidden mb-6">
                 {activeTab === 'list' ? (
-                  <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
+                  <>
+                    <div className="mb-3 flex items-center justify-end gap-2">
+                      <span className="mr-auto text-[10px] text-slate-500">Undo/redo restores values but revokes engineering review.</span>
+                      <button type="button" aria-label="Undo instrument edit" onClick={() => currentProjectId && undoInstruments(currentProjectId)} disabled={!canUndo} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">Undo</button>
+                      <button type="button" aria-label="Redo instrument edit" onClick={() => currentProjectId && redoInstruments(currentProjectId)} disabled={!canRedo} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">Redo</button>
+                    </div>
+                    <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
+                  </>
                 ) : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
               </div>
 

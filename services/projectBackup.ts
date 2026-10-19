@@ -1,6 +1,5 @@
-import { AnalysisProject } from '../types';
-import { normalizeInstrument } from './normalizeInstruments';
-import { isProject } from './projectStore';
+import type { AnalysisProject, Instrument } from '../types';
+import { isProject, isStoredProject, isStoredInstrument } from './projectStore';
 // Pure linear base64 checker shared with the server-side image API.
 import { isValidCanonicalBase64 } from './base64';
 
@@ -13,9 +12,26 @@ export const MAX_PROJECT_BACKUP_BYTES = 48 * 1024 * 1024;
 // Keep backup import/export bounded even when an untrusted JSON file contains
 // millions of tiny rows that fit below the byte limit.
 export const MAX_PROJECT_BACKUP_INSTRUMENTS = 2000;
-const assertBackupInstrumentCount = (value: unknown): void => {
+function assertBackupInstrumentCount(value: unknown): asserts value is unknown[] {
   if (!Array.isArray(value) || value.length > MAX_PROJECT_BACKUP_INSTRUMENTS) {
     throw new Error('Project backup exceeds the 2000 instrument limit.');
+  }
+};
+
+// Missing rows in a backup cannot be reconstructed. Reject the entire file
+// instead of presenting a silently incomplete instrument list.
+function assertBackupInstrumentRows(value: unknown): asserts value is Record<string, unknown>[] {
+  assertBackupInstrumentCount(value);
+  // A backup must restore the exact typed engineering fields. Do not
+  // manufacture missing descriptions, tags or plausible classifications.
+  if (value.some(item => !isStoredInstrument(item) ||
+    typeof item.id !== 'string' || !item.id.trim() ||
+    typeof item.tagName !== 'string' || !item.tagName.trim())) {
+    throw new Error('Project backup contains an invalid instrument row.');
+  }
+  const ids = value.map(item => (item as Instrument).id);
+  if (new Set(ids).size !== ids.length) {
+    throw new Error('Project backup contains duplicate instrument IDs.');
   }
 };
 export const assertProjectBackupBytes = (bytes: number): void => {
@@ -30,7 +46,8 @@ const checkedBackupText = (text: string): string => {
 };
 
 export const serializeProject = (project: AnalysisProject): string => {
-  assertBackupInstrumentCount(project.instruments);
+  assertBackupInstrumentRows(project.instruments);
+  if (!isStoredProject(project)) throw new Error('Project backup contains invalid project metadata.');
   return checkedBackupText(JSON.stringify({ format: FORMAT, version: VERSION, project }, null, 2));
 };
 
@@ -47,8 +64,36 @@ const safeImage = (value: unknown): string => {
 };
 
 /**
- * Reads a backup file. The file is untrusted: the envelope is checked, every
- * instrument is re-normalized and the project gets a fresh id.
+ * Model normalization intentionally supplies missing labels and types.
+ * Backup restoration MUST NOT reuse it: an engineer's intentionally empty
+ * fields must remain empty, not become fabricated equipment descriptions.
+ * Only validated known schema keys are restored; user-review claims are reset.
+ */
+const restoreStoredInstrument = (raw: Record<string, unknown>, index: number, projectId: string): Instrument => {
+  // assertBackupInstrumentRows has already checked every required/optional type.
+  const row = raw as unknown as Instrument;
+  return {
+    id: projectId + '-inst-' + index,
+    tagName: row.tagName.trim().toUpperCase(),
+    equipmentType: row.equipmentType,
+    signalType: row.signalType,
+    description: row.description,
+    engineeringUnits: row.engineeringUnits,
+    pcs7BlockType: row.pcs7BlockType,
+    abb800xaObject: row.abb800xaObject,
+    confidence: row.confidence,
+    reviewed: false,
+    ...(row.brand !== undefined ? { brand: row.brand } : {}),
+    ...(row.model !== undefined ? { model: row.model } : {}),
+    ...(row.estimatedCost !== undefined ? { estimatedCost: row.estimatedCost } : {}),
+    ...(row.connectedTo !== undefined ? { connectedTo: row.connectedTo } : {}),
+    ...(row.safetyWarning !== undefined ? { safetyWarning: row.safetyWarning } : {}),
+  };
+};
+
+/**
+ * Reads an untrusted backup under a new project id. It validates the full
+ * project and typed instrument rows before reconstructing known fields.
  */
 export const parseProjectBackup = (text: string, newId: string): AnalysisProject => {
   assertProjectBackupBytes(new TextEncoder().encode(text).byteLength);
@@ -62,18 +107,17 @@ export const parseProjectBackup = (text: string, newId: string): AnalysisProject
   if (envelope?.format !== FORMAT) throw new Error('The file is not a Vision2DCS project backup.');
   if (envelope.version !== VERSION) throw new Error(`Unsupported backup version: ${String(envelope.version)}.`);
   if (!isProject(envelope.project)) throw new Error('The backup does not contain a valid project.');
-  assertBackupInstrumentCount(envelope.project.instruments);
-
   const project = envelope.project;
+  const instruments: unknown = project.instruments;
+  assertBackupInstrumentRows(instruments);
+  if (!isStoredProject(project)) throw new Error('The backup does not contain a valid project.');
   const twin = safeImage(project.digitalTwinUrl);
   return {
     id: newId,
     name: String(project.name).trim() || 'Imported project',
     date: typeof project.date === 'string' ? project.date : new Date().toLocaleString(),
     imageUrl: safeImage(project.imageUrl),
-    instruments: (project.instruments as unknown[])
-      .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null && !Array.isArray(i))
-      .map((i, index) => normalizeInstrument(i, index, `${newId}-inst`)),
+    instruments: instruments.map((i, index) => restoreStoredInstrument(i, index, newId)),
     ...(twin ? { digitalTwinUrl: twin } : {}),
   };
 };

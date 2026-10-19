@@ -1,4 +1,4 @@
-/** Compare two previously generated, local benchmark JSON reports.
+/** Compare matching v1/v1 or v2/v2, source-hashed local benchmark reports.
  * Zero provider/model calls; refuses changed source drawings or labels.
  *
  * npm run eval:compare -- eval/results/old.json eval/results/new.json

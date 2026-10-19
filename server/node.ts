@@ -1,19 +1,45 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { createApiHandler } from './api';
 import { readServerConfig } from './config';
 import { createGeminiService, GeminiService } from './gemini';
 import { createRateLimiter } from './rateLimit';
+import {
+  createInferenceConcurrencyGate, createInferenceRequestCap,
+  parseAiConcurrency, parseAiRequestCap,
+} from './inferenceBudget';
 
 // Base64 inflates the 10 MB image limit by a third, plus JSON overhead.
 export const MAX_BODY_BYTES = 15 * 1024 * 1024;
 
-export type ApiHandler = (request: Request, clientId: string) => Promise<Response | null>;
+export type ApiHandler = ((request: Request, clientId: string) => Promise<Response | null>) & {
+  preflight?: (request: Request) => Response | null;
+};
 
-/** Wires the API to Gemini using env vars (GEMINI_API_KEY, GEMINI_*_MODEL). */
+/** Live provider requests require explicit enablement and a separate operator token. */
 export const createGeminiApiHandler = (env: Record<string, string | undefined>): ApiHandler => {
   const config = readServerConfig(env);
+  const secret = env.VISION2DCS_AI_ACCESS_TOKEN;
+  const requestCap = parseAiRequestCap(env.VISION2DCS_AI_MAX_REQUESTS);
+  const concurrencyLimit = parseAiConcurrency(env.VISION2DCS_AI_MAX_CONCURRENT ?? '2');
+  const aiEnabled = env.VISION2DCS_ENABLE_AI === 'true'
+    && typeof secret === 'string' && secret.length >= 32
+    && !!config.apiKey && requestCap !== null && concurrencyLimit !== null;
+  const expectedDigest = aiEnabled ? createHash('sha256').update(secret ?? '').digest() : null;
   let gemini: GeminiService | null = null;
   return createApiHandler({
+    aiEnabled,
+    reserveInference: aiEnabled ? createInferenceRequestCap(requestCap ?? 1) : () => false,
+    acquireInferenceSlot: aiEnabled ? createInferenceConcurrencyGate(concurrencyLimit ?? 1) : () => null,
+    authorizeRequest: (request: Request) => {
+      if (!expectedDigest) return false;
+      const header = request.headers.get('authorization');
+      if (!header?.startsWith('Bearer ') || header.length > 1024) return false;
+      const provided = header.slice(7);
+      if (!provided || provided !== provided.trim()) return false;
+      const actualDigest = createHash('sha256').update(provided).digest();
+      return timingSafeEqual(actualDigest, expectedDigest);
+    },
     getGemini: () => {
       const { apiKey } = config;
       if (!apiKey) return null;
@@ -26,23 +52,47 @@ export const createGeminiApiHandler = (env: Record<string, string | undefined>):
 
 class BodyTooLargeError extends Error {}
 
-// Past the limit the rest of the body is drained without being kept, so the
-// client still receives a clean 413 instead of a reset connection.
-const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer> =>
+// Reject immediately upon crossing the body limit. Continue draining the
+// inbound stream without buffering it so HTTP clients can receive a 413.
+export const readBody = (req: IncomingMessage, maxBytes: number): Promise<Buffer> =>
   new Promise((resolve, reject) => {
     let chunks: Buffer[] = [];
     let size = 0;
+    let exceeded = false;
+    let ended = false;
     req.on('data', (chunk: Buffer) => {
+      if (exceeded) return;
       size += chunk.length;
-      if (size > maxBytes) chunks = [];
-      else chunks.push(chunk);
+      if (size > maxBytes) {
+        exceeded = true;
+        chunks = [];
+        reject(new BodyTooLargeError());
+        req.resume(); // Drain any remaining bytes without awaiting request end.
+        return;
+      }
+      chunks.push(chunk);
     });
-    req.on('end', () => (size > maxBytes ? reject(new BodyTooLargeError()) : resolve(Buffer.concat(chunks))));
+    req.on('end', () => {
+      ended = true;
+      if (!exceeded) resolve(Buffer.concat(chunks));
+    });
     req.on('error', reject);
+    // A client may close while transmitting a declared body. 'end' is not
+    // guaranteed on early disconnect; do not leave this promise unresolved.
+    req.on('aborted', () => reject(new Error('Client upload aborted.')));
+    req.on('close', () => {
+      if (!ended) reject(new Error('Client upload closed before completion.'));
+    });
   });
 
 const sendError = (res: ServerResponse, status: number, message: string) => {
-  res.writeHead(status, { 'content-type': 'application/json' });
+  // The client may have disconnected while the body reader was pending.
+  if (res.destroyed || res.writableEnded) return;
+  res.writeHead(status, {
+    'content-type': 'application/json',
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+  });
   res.end(JSON.stringify({ error: message }));
 };
 
@@ -58,6 +108,34 @@ export const handleNodeApiRequest = async (
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   if (!url.pathname.startsWith('/api/')) return false;
 
+  // Reject declared over-limit uploads without buffering a 15+ MiB body.
+  // Drain the socket to keep the connection protocol in a consistent state.
+  const declaredLength = req.headers['content-length'];
+  if (typeof declaredLength === 'string' && /^[0-9]+$/.test(declaredLength) &&
+      Number(declaredLength) > MAX_BODY_BYTES) {
+    req.resume();
+    sendError(res, 413, 'Request body is too large.');
+    return true;
+  }
+
+  const headers = {
+    'content-type': String(req.headers['content-type'] ?? ''),
+    ...(typeof req.headers.authorization === 'string'
+      ? { authorization: req.headers.authorization }
+      : {}),
+  };
+
+  // Refuse unauthorized or disabled AI calls before allocating upload buffers.
+  if (handler.preflight) {
+    const refused = handler.preflight(new Request(url, { method: req.method, headers }));
+    if (refused) {
+      req.resume();
+      res.writeHead(refused.status, Object.fromEntries(refused.headers));
+      res.end(Buffer.from(await refused.arrayBuffer()));
+      return true;
+    }
+  }
+
   let body: Buffer | undefined;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     try {
@@ -71,7 +149,7 @@ export const handleNodeApiRequest = async (
 
   const request = new Request(url, {
     method: req.method,
-    headers: { 'content-type': String(req.headers['content-type'] ?? '') },
+    headers,
     body: body ? new Uint8Array(body) : undefined,
   });
   const response = await handler(request, req.socket.remoteAddress ?? 'unknown');

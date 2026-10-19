@@ -55,11 +55,15 @@ npm install
 cp .env.example .env.local
 ```
 
-Set `GEMINI_API_KEY` in `.env.local`. The key is read only on the server. The browser calls `/api/analyze` and `/api/digital-twin` and never sees the key.
+Set `GEMINI_API_KEY` in `.env.local`. **Billable AI is disabled by default** even when a Gemini key is configured. Explicitly authorize model spending before enabling `VISION2DCS_ENABLE_AI=true` and providing a distinct random `VISION2DCS_AI_ACCESS_TOKEN` (32+ characters) **and** a positive `VISION2DCS_AI_MAX_REQUESTS` process invocation cap (1–1000). Enter this *operator token* in the browser's **AI access** field. It is kept in the current tab's memory only; reloading or **Clear AI token** discards it. The provider key never enters the browser. For remote deployments, use HTTPS, an identity-aware ingress and provider budget limits; a shared token is **not** full user authentication or a spending cap. The application invocation cap is **not a monetary billing limit**: SDK-internal retries, replicas and process restarts may cause additional provider calls. The application-level Gemini wrapper explicitly disables automatic retries per reserved invocation. Set hard quotas or spending controls with the provider.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GEMINI_API_KEY` | (required) | Google AI Studio key |
+| `GEMINI_API_KEY` | (unset) | Server-side Gemini key; does not by itself activate paid AI |
+| `VISION2DCS_ENABLE_AI` | `false` | Must equal `true` for paid AI inference |
+| `VISION2DCS_AI_ACCESS_TOKEN` | (unset) | 32+ character server-only operator token required for enabled AI routes |
+| `VISION2DCS_AI_MAX_REQUESTS` | (unset) | Required positive (1–1000) per-process provider invocation cap; no automatic refund |
+| `VISION2DCS_AI_MAX_CONCURRENT` | `2` | Optional maximum simultaneous paid model operations (1–8) |
 | `GEMINI_ANALYSIS_MODEL` | `gemini-3-flash-preview` | Model for P&ID extraction |
 | `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` | Model for the digital-twin render |
 | `PORT` | `3000` | Port for `npm start` |
@@ -81,20 +85,21 @@ npm test
 
 ```bash
 npm run build
-GEMINI_API_KEY=... npm start
+npm start
 ```
 
-`npm run build` writes the app to `dist/` and the server to `dist-server/`. `npm start` serves both on `PORT`. The server limits each client to 20 AI requests per minute, accepts images up to 10 MB, and retries rate-limited or transient Gemini failures with backoff. The rate limit is held in memory per process and keyed by client IP, so it assumes a single instance that is not behind a shared proxy.
+`npm run build` writes the app to `dist/` and the server to `dist-server/`. `npm start` serves both on `PORT`. Disabled AI requests return HTTP 503; authorized operators with a missing or incorrect bearer token receive HTTP 401. The offline JSON backup, engineering review and export flows remain available with AI disabled. Enabled AI routes first acquire a bounded in-flight model-operation slot (default 2), then reserve from a process-lifetime invocation cap immediately before model use, and limit each client to 20 requests per minute, accept images up to 10 MB, and do not automatically retry Gemini calls, avoiding multiple provider attempts per local allowance. The rate limit is held in memory per process and keyed by client IP, so it assumes a single instance that is not behind a shared proxy.
 
 ## Measuring extraction quality
 
 `samples/` holds synthetic P&IDs drawn for this repository. Each has an SVG source, the rendered `drawing.png` and a hand-checked `expected.json`. To run the benchmark against the configured model:
 
 ```bash
-npm run eval
+npm run eval:preflight
+VISION2DCS_EVAL_MAX_CALLS=2 npm run eval  # Example: explicitly allow 2 paid fixtures
 ```
 
-The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. On successful completion it retains a unique report in **`eval/results/runs/`** and atomically updates **`eval/results/latest.json`** with model identifier, timestamp, per-sample input SHA-256 hashes and microaveraged metrics, so successive results can be inspected against the exact source drawings and labels. This file is ignored by Git and is **not** a synthetic score or automatic CI output. Running `npm run eval` makes real, potentially billable Gemini calls; it requires `GEMINI_API_KEY` and is not part of CI. CI tests only the offline report builder and validates that sample fixtures remain well-formed. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
+The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. The synthetic fixtures also label **directed dashed instrument signal lines** in `signalConnections`. The runner prints separate edge precision, recall and F1 from model-generated `connectedTo` references, counting missed, reversed, dangling and spurious links. This excludes automatically inferred React Flow loop chains and unlabelled process piping. Topology-aware evaluations are persisted in **schema-v2** reports containing per-sample and microaveraged tag and directed-signal metrics. Historical **schema-v1** tag-only reports remain readable and comparable to other v1 reports; mixed v1/v2 comparisons fail explicitly. CI validates reporting offline but never makes billable Gemini calls. On successful completion it retains a unique report in **`eval/results/runs/`** and atomically updates **`eval/results/latest.json`** with model identifier, timestamp, per-sample input SHA-256 hashes and microaveraged metrics, so successive results can be inspected against the exact source drawings and labels. This file is ignored by Git and is **not** a synthetic score or automatic CI output. Running `npm run eval` makes real, potentially billable Gemini calls. The runner now validates **every fixture, expected tag, complete PNG chunk structure and CRC, drawing size and directed-signal annotation before any provider call**. It also requires explicit `VISION2DCS_EVAL_MAX_CALLS` (positive integer, no more than 100, covering the complete fixture set) in addition to `GEMINI_API_KEY`; incomplete or corrupt later examples cannot waste paid calls on earlier fixtures. Use `npm run eval:preflight` for a fully offline, free check. Per-process and provider-level spending controls remain separate; actual billing and vendor data are never fabricated by CI. CI tests the offline report builder and the same full-fixture preflight logic used by manual paid evaluation, but never calls Gemini. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
 
 ### Compare two real benchmark runs without another Gemini call
 
@@ -107,7 +112,7 @@ npm run eval:compare -- eval/results/baseline.json eval/results/candidate.json
 This offline command verifies the report schema, source drawing/label SHA-256 hashes, unique sample names, scoring counts and recalculated microaveraged summaries. It prints baseline/candidate precision, recall, F1, matched-tag type accuracies and their signed deltas. A changed data set, forged summary, corrupt report or different label file fails rather than producing a misleading comparison. Reports must first be generated by explicitly authorized `npm run eval` runs; **CI neither runs Gemini nor fabricates benchmark results**. The command does not interpret changes as statistically significant or certified engineering quality.
 
 ## Manual engineering edits and project backup
-The P&ID editor supports review-required low-confidence manual tag entries, spreadsheet-safe estimated BOM CSV export and versioned JSON backups. Imported/exported backup files share a 48 MiB UTF-8 limit (a 25 MiB raw drawing can require about 34 MiB in base64); oversize exports fail visibly rather than creating unrestorable backups, re-normalized, and stripped of external/SVG image URLs. All vendor CSV/XML formats remain conceptual until verified against vendor import tools.
+The P&ID editor supports review-required low-confidence manual tag entries, spreadsheet-safe estimated BOM CSV export and versioned JSON backups. Imported/exported backup files share a 48 MiB UTF-8 limit (a 25 MiB raw drawing can require about 34 MiB in base64). Oversize exports fail visibly rather than creating unrestorable backups. Imported instrument rows are type-validated and reconstructed from known fields (not re-normalized with AI defaults); existing local-review flags are revoked and external/SVG image URLs are stripped. Malformed non-object instrument rows fail the entire model response or backup import/export rather than silently disappearing. All vendor CSV/XML formats remain conceptual until verified against vendor import tools.
 
 ## Limitations
 
@@ -117,7 +122,8 @@ The P&ID editor supports review-required low-confidence manual tag entries, spre
 - **Explicit local review.** Every model-extracted or imported instrument starts unreviewed, regardless of AI confidence or any review flag inside a JSON backup. The operator must click **Review** for each row after inspecting the drawing. Changing a tag, description, signal, block or units clears that approval; concept exports are disabled until all current rows have been reviewed. This local toggle is **not an authenticated engineering sign-off** or vendor safety certification.
 - **NEXUS Tag Map v1.** A manually downloaded, [read-only versioned JSON contract](docs/NEXUS_TAG_MAP_V1.md) is available for locally reviewed and tag-valid projects. It deliberately omits credentials, drawings, plant measurements and control commands. No automatic cross-product synchronization is implemented.
 - **Single-user storage.** Project history lives in the browser's `localStorage`, about 5 MB. A warning appears when it is full.
-- **Single-instance server.** The rate limiter is in memory, and there is no authentication. Put the app behind your own access control before exposing it.
+- **Operator-gated paid AI API.** AI endpoints are disabled by default. An explicit operator toggle and a long bearer secret are required; this shared-secret mechanism is **not identity authentication, a billing cap or protection against stolen credentials**. Require trusted HTTPS ingress, identity-aware access and provider quotas before any public exposure.
+- **Single-instance server.** Rate limiting is in memory and keyed by socket IP; reverse-proxy headers are not trusted and multiple replicas need authoritative shared upstream limits.
 - **Preview models.** The default model names are preview releases and may change. Override them with the `GEMINI_*_MODEL` variables.
 
 ## Repository highlights

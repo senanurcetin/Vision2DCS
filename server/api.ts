@@ -1,4 +1,4 @@
-import { decodedBase64Bytes, isValidCanonicalBase64 } from './base64';
+import { decodedBase64Bytes, isValidCanonicalBase64, matchesRasterSignature } from './base64';
 import type { GeminiService } from './gemini';
 import { ModelOutputError } from '../services/normalizeInstruments';
 
@@ -14,11 +14,25 @@ export interface ApiDeps {
   getGemini: () => GeminiService | null;
   /** Returns false when the client has exhausted its request budget. */
   allowRequest: (clientId: string) => boolean;
+  /** Production server defaults to disabled; explicit operator opt-in required. */
+  aiEnabled?: boolean;
+  authorizeRequest?: (request: Request) => boolean;
+  /** Reserve one application-level provider invocation; must fail closed. */
+  reserveInference?: () => boolean;
+  /** A synchronous in-flight reservation with an idempotent release. */
+  acquireInferenceSlot?: () => (() => void) | null;
   log?: (message: string, error: unknown) => void;
 }
 
 const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
+    },
+  });
 
 const error = (status: number, message: string) => json(status, { error: message });
 
@@ -37,14 +51,25 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
  * Web-standard handler for the /api routes. Returns null for paths it does not
  * own so hosts can fall through to static files.
  */
-export const createApiHandler = ({ getGemini, allowRequest, log = console.error }: ApiDeps) =>
-  async (request: Request, clientId: string): Promise<Response | null> => {
+export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, authorizeRequest = () => false,
+  reserveInference = () => false, acquireInferenceSlot = () => null, log = console.error }: ApiDeps) => {
+  /** Header-only gate; does not spend quotas or consume the request body. */
+  const preflight = (request: Request): Response | null => {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;
-
-    const route = pathname === '/api/analyze' || pathname === '/api/digital-twin' ? pathname : null;
-    if (!route) return error(404, 'Not found');
+    if (pathname !== '/api/analyze' && pathname !== '/api/digital-twin') return error(404, 'Not found');
     if (request.method !== 'POST') return error(405, 'Method not allowed');
+    if (!aiEnabled) return error(503, 'AI endpoints are disabled by server configuration.');
+    if (!authorizeRequest(request)) return error(401, 'AI access token is missing or invalid.');
+    return null;
+  };
+
+  const handle = async (request: Request, clientId: string): Promise<Response | null> => {
+    const { pathname } = new URL(request.url);
+    if (!pathname.startsWith('/api/')) return null;
+    const rejected = preflight(request);
+    if (rejected) return rejected;
+    const route = pathname;
     if (!allowRequest(clientId)) return error(429, 'Too many requests. Please wait a minute and try again.');
 
     const gemini = getGemini();
@@ -62,9 +87,19 @@ export const createApiHandler = ({ getGemini, allowRequest, log = console.error 
         if (typeof image !== 'string' || image.length === 0) return error(400, 'Missing image data.');
         if (decodedBase64Bytes(image) > MAX_IMAGE_BYTES) return error(413, 'Image is too large (max 10 MB).');
         if (!isValidCanonicalBase64(image)) return error(400, 'Image data must be valid base64.');
+        if (!matchesRasterSignature(image, mimeType)) {
+          return error(400, 'Image bytes do not match the declared JPEG, PNG or WebP format.');
+        }
 
-        const instruments = await gemini.analyze({ data: image, mimeType });
-        return json(200, { instruments });
+        const release = acquireInferenceSlot();
+        if (!release) return error(429, 'Too many AI operations in progress.');
+        try {
+          if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
+          const instruments = await gemini.analyze({ data: image, mimeType });
+          return json(200, { instruments });
+        } finally {
+          release();
+        }
       }
 
       const { instruments } = body;
@@ -89,11 +124,26 @@ export const createApiHandler = ({ getGemini, allowRequest, log = console.error 
         }
         summary.push({ tagName, description });
       }
-      const imageUrl = await gemini.digitalTwin(summary);
-      return json(200, { imageUrl });
+      const release = acquireInferenceSlot();
+      if (!release) return error(429, 'Too many AI operations in progress.');
+      try {
+        if (!reserveInference()) return error(429, 'The AI request cap for this process has been reached.');
+        const imageUrl = await gemini.digitalTwin(summary);
+        return json(200, { imageUrl });
+      } finally {
+        release();
+      }
     } catch (e) {
-      log(`Gemini request to ${route} failed:`, e);
       const status = (e as { status?: unknown })?.status;
+      // SDK errors may contain image content, provider URL parameters or
+      // credentials. Never send raw error messages or stacks to telemetry.
+      log(`Gemini request to ${route} failed:`, {
+        // SDK errors may control their own name property; never log it verbatim.
+        name: e instanceof ModelOutputError ? 'ModelOutputError'
+          : e instanceof TypeError ? 'TypeError'
+          : e instanceof Error ? 'Error' : 'UnknownError',
+        status: typeof status === 'number' && Number.isSafeInteger(status) ? status : undefined,
+      });
       if (status === 429) return error(503, 'The AI service is rate limited. Please try again shortly.');
       if (status === 401 || status === 403 || (e instanceof Error && e.message.includes('API_KEY_INVALID'))) {
         return error(503, "The server's GEMINI_API_KEY was rejected by the AI service.");
@@ -102,3 +152,5 @@ export const createApiHandler = ({ getGemini, allowRequest, log = console.error 
       return error(502, 'The AI service request failed.');
     }
   };
+  return Object.assign(handle, { preflight });
+};

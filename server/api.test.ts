@@ -3,6 +3,9 @@ import { ModelOutputError } from '../services/normalizeInstruments';
 import { createApiHandler, MAX_IMAGE_BYTES } from './api';
 import type { GeminiService } from './gemini';
 
+// Small real raster fixture for offline route validation.
+const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO8mSY8AAAAASUVORK5CYII=';
+
 const fakeGemini = (overrides: Partial<GeminiService> = {}): GeminiService => ({
   analyze: vi.fn(async () => [{ tagName: 'PT-101' } as never]),
   digitalTwin: vi.fn(async () => 'data:image/png;base64,AAAA'),
@@ -14,6 +17,11 @@ const setup = (options: { gemini?: GeminiService | null; allow?: boolean } = {})
   const handler = createApiHandler({
     getGemini: () => gemini,
     allowRequest: () => options.allow ?? true,
+    // Unit-test Gemini is an offline stub; explicitly opt in to exercise API validation.
+    aiEnabled: true,
+    authorizeRequest: () => true,
+    reserveInference: () => true,
+    acquireInferenceSlot: () => () => {},
     log: () => {},
   });
   const call = (path: string, body?: unknown, method = 'POST') =>
@@ -32,11 +40,20 @@ describe('createApiHandler', () => {
     expect(await setup().call('/index.html', undefined, 'GET')).toBeNull();
   });
 
+  it('marks all AI JSON responses non-cacheable and disables content-type sniffing', async () => {
+    const valid = await setup().call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' });
+    const rejected = await setup({ allow: false }).call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' });
+    for (const response of [valid, rejected]) {
+      expect(response?.headers.get('cache-control')).toBe('no-store');
+      expect(response?.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+  });
+
   it('analyzes a supported image', async () => {
     const { gemini, call } = setup();
-    const result = await read(await call('/api/analyze', { image: 'AAAA', mimeType: 'image/png' }));
+    const result = await read(await call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }));
     expect(result).toEqual({ status: 200, body: { instruments: [{ tagName: 'PT-101' }] } });
-    expect(gemini!.analyze).toHaveBeenCalledWith({ data: 'AAAA', mimeType: 'image/png' });
+    expect(gemini!.analyze).toHaveBeenCalledWith({ data: PNG_FIXTURE, mimeType: 'image/png' });
   });
 
   it('rejects unsupported types, missing data and oversized images', async () => {
@@ -47,12 +64,36 @@ describe('createApiHandler', () => {
     expect((await call('/api/analyze', { image: huge, mimeType: 'image/png' }))?.status).toBe(413);
   });
 
-  it('accepts padded base64 images with the exact decoded byte count', async () => {
+  it('accepts canonical base64 with matching PNG, JPEG and WebP signatures', async () => {
     const { gemini, call } = setup();
-    for (const image of ['AQ==', 'AAA=', 'AAAAAQ==']) {
-      expect((await call('/api/analyze', { image, mimeType: 'image/png' }))?.status).toBe(200);
+    const jpegHeader = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x11, 0x22]).toString('base64');
+    const webpHeader = Buffer.from('RIFF1234WEBPVP8 0000').toString('base64');
+    const cases = [
+      { image: PNG_FIXTURE, mimeType: 'image/png' },
+      { image: jpegHeader, mimeType: 'image/jpeg' },
+      { image: webpHeader, mimeType: 'image/webp' },
+    ];
+    for (const entry of cases) {
+      expect((await call('/api/analyze', entry))?.status).toBe(200);
     }
     expect(gemini!.analyze).toHaveBeenCalledTimes(3);
+  });
+
+  it('refuses MIME spoofing and truncated raster headers before contacting Gemini', async () => {
+    const { gemini, call } = setup();
+    for (const entry of [
+      { image: PNG_FIXTURE, mimeType: 'image/jpeg' },
+      { image: 'AAAA', mimeType: 'image/png' },
+      { image: Buffer.from('not image bytes').toString('base64'), mimeType: 'image/png' },
+      { image: Buffer.from([0xff, 0xd8]).toString('base64'), mimeType: 'image/jpeg' },
+      { image: Buffer.from('RIFF1234WEBPNOT!').toString('base64'), mimeType: 'image/webp' },
+    ]) {
+      expect(await read(await call('/api/analyze', entry))).toEqual({
+        status: 400,
+        body: { error: 'Image bytes do not match the declared JPEG, PNG or WebP format.' },
+      });
+    }
+    expect(gemini!.analyze).not.toHaveBeenCalled();
   });
 
   it('rejects malformed base64 before invoking the model', async () => {
@@ -76,7 +117,7 @@ describe('createApiHandler', () => {
   });
 
   it('returns 503 when no API key is configured', async () => {
-    const result = await read(await setup({ gemini: null }).call('/api/analyze', { image: 'AAAA', mimeType: 'image/png' }));
+    const result = await read(await setup({ gemini: null }).call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }));
     expect(result.status).toBe(503);
     expect(result.body.error).toMatch(/GEMINI_API_KEY/);
   });
@@ -85,24 +126,49 @@ describe('createApiHandler', () => {
     expect((await setup({ allow: false }).call('/api/analyze', {}))?.status).toBe(429);
   });
 
+  it('does not log original SDK error messages, plant data or credential fragments', async () => {
+    const original = new Error('secret-provider-key and private plant P&ID');
+    original.name = 'secret-provider-key and private plant P&ID';
+    const recorded = vi.fn();
+    const handler = createApiHandler({
+      getGemini: () => fakeGemini({ analyze: async () => { throw original; } }),
+      allowRequest: () => true,
+      aiEnabled: true,
+      authorizeRequest: () => true,
+      reserveInference: () => true,
+    acquireInferenceSlot: () => () => {},
+      log: recorded,
+    });
+    const response = await handler(new Request('http://localhost/api/analyze', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ image: PNG_FIXTURE, mimeType: 'image/png' }),
+    }), 'test-client');
+    expect(response?.status).toBe(502);
+    expect(recorded).toHaveBeenCalledTimes(1);
+    expect(recorded.mock.calls[0][1]).toMatchObject({ name: 'Error' });
+    const serialized = JSON.stringify(recorded.mock.calls);
+    expect(serialized).not.toContain('secret-provider-key');
+    expect(serialized).not.toContain('private plant');
+  });
+
   it('passes model output errors through and hides other upstream details', async () => {
     const modelError = setup({ gemini: fakeGemini({ analyze: async () => { throw new ModelOutputError('AI returned malformed JSON'); } }) });
-    expect(await read(await modelError.call('/api/analyze', { image: 'AAAA', mimeType: 'image/png' })))
+    expect(await read(await modelError.call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' })))
       .toEqual({ status: 502, body: { error: 'AI returned malformed JSON.' } });
 
     const upstream = setup({ gemini: fakeGemini({ analyze: async () => { throw new Error('secret internal detail'); } }) });
-    const result = await read(await upstream.call('/api/analyze', { image: 'AAAA', mimeType: 'image/png' }));
+    const result = await read(await upstream.call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }));
     expect(result.status).toBe(502);
     expect(result.body.error).not.toMatch(/secret/);
 
     const limited = setup({ gemini: fakeGemini({ analyze: async () => { throw Object.assign(new Error('quota'), { status: 429 }); } }) });
-    expect((await limited.call('/api/analyze', { image: 'AAAA', mimeType: 'image/png' }))?.status).toBe(503);
+    expect((await limited.call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }))?.status).toBe(503);
   });
 
   it('reports a rejected API key as a server configuration problem', async () => {
     const invalidKey = Object.assign(new Error('{"error":{"code":400,"details":[{"reason":"API_KEY_INVALID"}]}}'), { status: 400 });
     const { call } = setup({ gemini: fakeGemini({ analyze: async () => { throw invalidKey; } }) });
-    const result = await read(await call('/api/analyze', { image: 'AAAA', mimeType: 'image/png' }));
+    const result = await read(await call('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }));
     expect(result).toEqual({ status: 503, body: { error: "The server's GEMINI_API_KEY was rejected by the AI service." } });
   });
 

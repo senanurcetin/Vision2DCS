@@ -14,7 +14,8 @@
     "test": "vitest run",
     "start": "node dist-server/start.js",
     "eval": "vite-node eval/run.ts",
-    "eval:compare": "vite-node eval/compare-cli.ts"
+    "eval:compare": "vite-node eval/compare-cli.ts",
+    "eval:preflight": "vite-node eval/preflight-cli.ts"
   },
   "dependencies": {
     "@google/genai": "2.29.1",

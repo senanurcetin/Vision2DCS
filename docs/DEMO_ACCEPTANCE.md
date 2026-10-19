@@ -1,0 +1,50 @@
+# NEXUS Vision2DCS — Offline Demo Acceptance
+
+Scope: a **local, read-only engineering concept demo**, not certified industrial
+control software or a vendor-ready PCS 7 / ABB import. No live PLC, plant network,
+automatic GitHub deployment, model API payment or operator secrets are needed.
+
+## Reproducible exact-head checks
+
+Run with locked dependencies and a supported Node.js environment:
+
+```sh
+npm ci --no-audit --no-fund
+npm run typecheck
+npm test
+npm run eval:preflight
+npm run build
+```
+
+Pull-request GitHub Actions and CircleCI supply independent evidence. The
+offline Chromium browser-smoke job additionally checks synthetic backup import,
+explicit review before concept exports, responsive layout and token handling.
+
+## Manual demo walk-through
+
+1. Launch `npm run dev`. Leave the AI access token blank; model features must
+   remain disabled. Do not configure or call a real Gemini API for this demo.
+2. Import a valid `.vision2dcs.json` project with reviewed flags in the file.
+   Verify flags are revoked and the original source drawing appears locally.
+3. Confirm tag editing, undo/redo and project rename work; engineering-field
+   edits must revoke previous human review.
+4. Check OT-Sentinel warnings and BOM. Unpriced equipment displays
+   **Not estimated**, with a **Partial estimate** warning for missing costs.
+5. Confirm concept exports cannot run while any row lacks explicit local review;
+   review tags manually, then export conceptual Siemens CSV, ABB XML and the
+   read-only NEXUS Tag Map v1 JSON.
+6. Confirm the JSON tag-map is at most 1 MiB **as downloaded**, contains no
+   credentials or drawing payload, and fails closed on invalid or duplicate tags.
+7. Import a deliberately malformed backup; the original projects must remain
+   untouched. Reject unauthorized/oversized HTTP uploads without model calls.
+
+## Release boundaries
+
+Passing this offline demo does **not** claim verified live AI extraction
+accuracy, PLC/OT interoperability, vendor import compatibility, a signed
+human engineering review, SIL certification, or production-grade internet
+authentication / provider billing controls. Real vendor validation (#2),
+engineering sign-off and secure TLS identity ingress remain separate gates.
+
+Do not merge this integration PR into a production/deployment branch based
+solely on an offline smoke test.

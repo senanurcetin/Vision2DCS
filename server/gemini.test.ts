@@ -19,6 +19,8 @@ vi.mock('@google/genai', () => ({
 import { ModelOutputError } from '../services/normalizeInstruments';
 import { createGeminiService } from './gemini';
 
+const PNG_1PX = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO8mSY8AAAAASUVORK5CYII=';
+
 const service = () => createGeminiService({
   apiKey: 'offline-test-key',
   analysisModel: 'analysis-test-model',
@@ -54,13 +56,13 @@ describe('GenAI 2.x generateContent contract (offline)', () => {
         content: {
           parts: [
             { text: 'not an image' },
-            { inlineData: { mimeType: 'image/png', data: 'AQID' } },
+            { inlineData: { mimeType: 'image/png', data: PNG_1PX } },
           ],
         },
       }],
     });
     const output = await service().digitalTwin([{ tagName: 'PT-101', description: 'Pressure' }]);
-    expect(output).toBe('data:image/png;base64,AQID');
+    expect(output).toBe('data:image/png;base64,' + PNG_1PX);
     expect(sdk.generateContent.mock.calls[0][0].model).toBe('image-test-model');
   });
 
@@ -70,6 +72,8 @@ describe('GenAI 2.x generateContent contract (offline)', () => {
       { mimeType: 'image/svg+xml', data: 'AAAA' },
       { mimeType: 'image/png', data: '!!!' },
       { mimeType: 'image/png', data: 'A' },
+      { mimeType: 'image/png', data: 'AQID' },
+      { mimeType: 'image/jpeg', data: PNG_1PX },
     ]) {
       sdk.generateContent.mockResolvedValue({
         candidates: [{ content: { parts: [{ inlineData: unsafe }] } }],
@@ -77,7 +81,18 @@ describe('GenAI 2.x generateContent contract (offline)', () => {
       await expect(service().digitalTwin([{ tagName: 'PT-101', description: 'Pressure' }]))
         .rejects.toThrow(ModelOutputError);
     }
-    expect(sdk.generateContent).toHaveBeenCalledTimes(4);
+    expect(sdk.generateContent).toHaveBeenCalledTimes(6);
+  });
+
+  it('does not retry transient errors into multiple app-level provider calls', async () => {
+    const transient = Object.assign(new Error('offline upstream 503'), { status: 503 });
+    sdk.generateContent.mockRejectedValue(transient);
+    await expect(service().analyze({ mimeType: 'image/png', data: 'AAAA' })).rejects.toBe(transient);
+    expect(sdk.generateContent).toHaveBeenCalledTimes(1);
+    sdk.generateContent.mockClear();
+    await expect(service().digitalTwin([{ tagName: 'PT-101', description: 'Pressure' }]))
+      .rejects.toBe(transient);
+    expect(sdk.generateContent).toHaveBeenCalledTimes(1);
   });
 
   it('rejects oversized generated inline image payloads', async () => {

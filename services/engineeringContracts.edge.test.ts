@@ -111,7 +111,7 @@ describe('model-output normalization must not conceal uncertainty', () => {
     expect(instrument.estimatedCost).toBe(0);
   });
 
-  it('renumbers only accepted object records in a mixed model response', () => {
+  it('fails closed on mixed model responses that would omit engineering rows', () => {
     const raw = JSON.stringify([
       null,
       { tagName: 'FT-1', signalType: 'AI', pcs7BlockType: 'MonAnL' },
@@ -119,9 +119,9 @@ describe('model-output normalization must not conceal uncertainty', () => {
       ['not an instrument'],
       { tagName: 'PT-2', signalType: 'AI', pcs7BlockType: 'MonAnL' },
     ]);
-    const normalized = parseInstrumentResponse(raw, 'run');
-    expect(normalized.map((item) => item.id)).toEqual(['run-0', 'run-1']);
-    expect(normalized.map((item) => item.tagName)).toEqual(['FT-1', 'PT-2']);
+    expect(() => parseInstrumentResponse(raw, 'run')).toThrow(ModelOutputError);
+    expect(() => parseInstrumentResponse(raw, 'run'))
+      .toThrow('invalid instrument row at index 0');
   });
 
   it('rejects syntactically valid non-list JSON with a domain error', () => {

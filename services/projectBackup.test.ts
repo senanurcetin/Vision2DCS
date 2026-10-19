@@ -33,6 +33,51 @@ describe('project backup', () => {
     expect(restored).toMatchObject({ ...project, id: 'proj-2', instruments: [{ ...instrument, id: 'proj-2-inst-0' }] });
   });
 
+  it('preserves empty human-authored engineering fields instead of inventing defaults', () => {
+    const intentionallyBlank: Instrument = {
+      ...instrument,
+      tagName: '  pt-101 ',
+      equipmentType: '',
+      description: '',
+      engineeringUnits: '',
+      abb800xaObject: '',
+      brand: '',
+      model: '',
+      connectedTo: '',
+      safetyWarning: '',
+      estimatedCost: 0,
+    };
+    const imported = parseProjectBackup(
+      serializeProject({ ...project, instruments: [intentionallyBlank] }),
+      'reimport',
+    );
+    expect(imported.instruments[0]).toMatchObject({
+      id: 'reimport-inst-0',
+      tagName: 'PT-101',
+      equipmentType: '',
+      description: '',
+      engineeringUnits: '',
+      abb800xaObject: '',
+      brand: '',
+      model: '',
+      connectedTo: '',
+      safetyWarning: '',
+      estimatedCost: 0,
+      reviewed: false,
+    });
+  });
+
+  it('does not carry attacker-supplied extra JSON fields into editor history', () => {
+    const raw = JSON.stringify({
+      format: 'vision2dcs-project',
+      version: 1,
+      project: { ...project, instruments: [{ ...instrument, privateNetworkEndpoint: 'plc://secret' }] },
+    });
+    const row = parseProjectBackup(raw, 'clean').instruments[0];
+    expect(row).not.toHaveProperty('privateNetworkEndpoint');
+    expect(row.tagName).toBe('PT-101');
+  });
+
   it('discards an imported project claiming its instruments were already reviewed', () => {
     const tampered = { ...project, instruments: [{ ...instrument, reviewed: true }] };
     const imported = parseProjectBackup(serializeProject(tampered), 'reimport');
@@ -60,14 +105,62 @@ describe('project backup', () => {
     expect(imported).not.toHaveProperty('digitalTwinUrl');
   });
 
-  it('re-normalizes instruments and skips entries that are not objects', () => {
-    const tampered = JSON.stringify({
+  it.each(['junk', null, 42, []])(
+    'rejects a malformed backup row rather than silently dropping %j',
+    (invalidRow) => {
+      const tampered = JSON.stringify({
+        format: 'vision2dcs-project', version: 1,
+        project: { ...project, instruments: [instrument, invalidRow] },
+      });
+      expect(() => parseProjectBackup(tampered, 'p')).toThrow('invalid instrument row');
+    },
+  );
+
+  it('refuses to serialize an unrestorable backup containing invalid instrument rows', () => {
+    const invalid = { ...project, instruments: [instrument, null] as unknown as Instrument[] };
+    expect(() => serializeProject(invalid)).toThrow('invalid instrument row');
+  });
+
+  it('rejects missing and corrupted engineering fields instead of normalizing them silently', () => {
+    for (const invalid of [
+      { tagName: 'XY-1', signalType: 'HART', confidence: 'high' },
+      { ...instrument, signalType: 'HART' },
+      { ...instrument, pcs7BlockType: 42 },
+      { ...instrument, equipmentType: null },
+      { ...instrument, confidence: 'perfect' },
+      { ...instrument, id: '' },
+      { ...instrument, tagName: ' ' },
+      { ...instrument, connectedTo: ['PT-102'] },
+    ]) {
+      const raw = JSON.stringify({
+        format: 'vision2dcs-project', version: 1,
+        project: { ...project, instruments: [instrument, invalid] },
+      });
+      expect(() => parseProjectBackup(raw, 'p')).toThrow('invalid instrument row');
+    }
+  });
+
+  it('rejects duplicate row IDs before attempting to restore an engineering history', () => {
+    const duplicate = { ...instrument, tagName: 'TT-102' };
+    const raw = JSON.stringify({
       format: 'vision2dcs-project', version: 1,
-      project: { ...project, instruments: [{ tagName: 'xy-1', signalType: 'HART', confidence: 'high' }, 'junk', null] },
+      project: { ...project, instruments: [instrument, duplicate] },
     });
-    const [only, ...rest] = parseProjectBackup(tampered, 'p').instruments;
-    expect(rest).toEqual([]);
-    expect(only).toMatchObject({ tagName: 'XY-1', signalType: 'Unknown', confidence: 'low' });
+    expect(() => parseProjectBackup(raw, 'p')).toThrow('duplicate instrument IDs');
+    expect(() => serializeProject({ ...project, instruments: [instrument, duplicate] }))
+      .toThrow('duplicate instrument IDs');
+  });
+
+  it('rejects malformed project metadata when creating and restoring backups', () => {
+    for (const invalid of [
+      { ...project, date: null },
+      { ...project, imageUrl: 123 },
+      { ...project, digitalTwinUrl: [] },
+    ]) {
+      expect(() => serializeProject(invalid as unknown as AnalysisProject)).toThrow('invalid project metadata');
+      const raw = JSON.stringify({ format: 'vision2dcs-project', version: 1, project: invalid });
+      expect(() => parseProjectBackup(raw, 'p')).toThrow('valid project');
+    }
   });
   it('rejects more than 2000 imported or exported instruments before normalization', () => {
     const many = Array.from({ length: 2001 }, () => ({ tagName: 'PT-101' })) as Instrument[];
