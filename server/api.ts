@@ -1,4 +1,4 @@
-import { decodedBase64Bytes, isValidCanonicalBase64 } from './base64';
+import { decodedBase64Bytes, isValidCanonicalBase64, matchesRasterSignature } from './base64';
 import type { GeminiService } from './gemini';
 import { ModelOutputError } from '../services/normalizeInstruments';
 
@@ -68,6 +68,9 @@ export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, a
         if (typeof image !== 'string' || image.length === 0) return error(400, 'Missing image data.');
         if (decodedBase64Bytes(image) > MAX_IMAGE_BYTES) return error(413, 'Image is too large (max 10 MB).');
         if (!isValidCanonicalBase64(image)) return error(400, 'Image data must be valid base64.');
+        if (!matchesRasterSignature(image, mimeType)) {
+          return error(400, 'Image bytes do not match the declared JPEG, PNG or WebP format.');
+        }
 
         const instruments = await gemini.analyze({ data: image, mimeType });
         return json(200, { instruments });
