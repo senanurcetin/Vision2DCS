@@ -60,14 +60,30 @@ describe('project backup', () => {
     expect(imported).not.toHaveProperty('digitalTwinUrl');
   });
 
-  it('re-normalizes instruments and skips entries that are not objects', () => {
+  it.each(['junk', null, 42, []])(
+    'rejects a malformed backup row rather than silently dropping %j',
+    (invalidRow) => {
+      const tampered = JSON.stringify({
+        format: 'vision2dcs-project', version: 1,
+        project: { ...project, instruments: [instrument, invalidRow] },
+      });
+      expect(() => parseProjectBackup(tampered, 'p')).toThrow('invalid instrument row');
+    },
+  );
+
+  it('refuses to serialize an unrestorable backup containing invalid instrument rows', () => {
+    const invalid = { ...project, instruments: [instrument, null] as unknown as Instrument[] };
+    expect(() => serializeProject(invalid)).toThrow('invalid instrument row');
+  });
+
+  it('still re-normalizes valid imported rows without trusting model classifications', () => {
     const tampered = JSON.stringify({
       format: 'vision2dcs-project', version: 1,
-      project: { ...project, instruments: [{ tagName: 'xy-1', signalType: 'HART', confidence: 'high' }, 'junk', null] },
+      project: { ...project, instruments: [{ tagName: 'xy-1', signalType: 'HART', confidence: 'high' }] },
     });
-    const [only, ...rest] = parseProjectBackup(tampered, 'p').instruments;
-    expect(rest).toEqual([]);
-    expect(only).toMatchObject({ tagName: 'XY-1', signalType: 'Unknown', confidence: 'low' });
+    expect(parseProjectBackup(tampered, 'p').instruments[0]).toMatchObject({
+      tagName: 'XY-1', signalType: 'Unknown', confidence: 'low',
+    });
   });
   it('rejects more than 2000 imported or exported instruments before normalization', () => {
     const many = Array.from({ length: 2001 }, () => ({ tagName: 'PT-101' })) as Instrument[];

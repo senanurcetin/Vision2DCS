@@ -22,6 +22,12 @@ vi.mock('./hooks/useProjects', () => ({
       addProject: vi.fn(),
       updateProject: (id: string, update: (p: AnalysisProject) => AnalysisProject) =>
         setProject(p => p?.id === id ? update(p) : p),
+      editInstruments: (id: string, change: (rows: Instrument[]) => Instrument[]) =>
+        setProject(p => p?.id === id ? { ...p, instruments: change(p.instruments) } : p),
+      undoInstruments: vi.fn(),
+      redoInstruments: vi.fn(),
+      canUndo: false,
+      canRedo: false,
       removeProject: vi.fn(),
       storageWarning: null,
     };
@@ -156,6 +162,8 @@ describe('instrument review/export DOM acceptance', () => {
     expect(host.querySelector<HTMLImageElement>('img[aria-hidden="true"]')?.getAttribute('src')).toBe('/nexus-x.svg');
     expect(host.querySelector('header')?.className).toContain('nexus-app-header');
     expect(host.querySelector('.nexus-engineering-panel')?.className).toContain('lg:w-1/2');
+    expect(host.querySelector('button[aria-label="Undo instrument edit"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Redo instrument edit"]')).not.toBeNull();
   });
 
 });

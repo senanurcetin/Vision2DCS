@@ -19,7 +19,8 @@ type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
 const App: React.FC = () => {
-  const { projects, currentProject, selectProject, addProject, updateProject, removeProject, storageWarning } = useProjects();
+  const { projects, currentProject, selectProject, addProject, updateProject, editInstruments,
+    removeProject, undoInstruments, redoInstruments, canUndo, canRedo, storageWarning } = useProjects();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingTwin, setIsGeneratingTwin] = useState(false);
@@ -91,32 +92,25 @@ const App: React.FC = () => {
 
   const updateInstrument = useCallback((id: string, updates: Partial<Instrument>) => {
     if (!currentProjectId) return;
-    updateProject(currentProjectId, p => ({
-      ...p,
-      instruments: p.instruments.map(inst => inst.id === id ? applyInstrumentUpdate(inst, updates) : inst)
-    }));
-  }, [currentProjectId, updateProject]);
+    editInstruments(currentProjectId, instruments =>
+      instruments.map(inst => inst.id === id ? applyInstrumentUpdate(inst, updates) : inst));
+  }, [currentProjectId, editInstruments]);
 
   const deleteInstrument = useCallback((id: string) => {
     if (!currentProjectId) return;
-    updateProject(currentProjectId, p => ({
-      ...p,
-      instruments: p.instruments.filter(inst => inst.id !== id)
-    }));
-  }, [currentProjectId, updateProject]);
+    editInstruments(currentProjectId, instruments => instruments.filter(inst => inst.id !== id));
+  }, [currentProjectId, editInstruments]);
 
   const addInstrument = useCallback(() => {
     if (!currentProjectId) return;
-    updateProject(currentProjectId, p => ({
-      ...p,
-      // Starts as Unknown/low confidence so the audit asks for it to be completed
-      instruments: [...p.instruments, normalizeInstrument(
-        { description: 'Manually added instrument', equipmentType: 'Manual' },
-        p.instruments.length,
-        `manual-${Date.now()}`,
-      )],
-    }));
-  }, [currentProjectId, updateProject]);
+    const prefix = 'manual-' + Date.now();
+    editInstruments(currentProjectId, instruments => [
+      ...instruments,
+      // Manual entries still start as Unknown/low and require explicit review.
+      normalizeInstrument({ description: 'Manually added instrument', equipmentType: 'Manual' },
+        instruments.length, prefix),
+    ]);
+  }, [currentProjectId, editInstruments]);
 
   const exportBackup = (project: AnalysisProject) => {
     try {
@@ -334,7 +328,14 @@ const App: React.FC = () => {
            <div className="flex-1 overflow-hidden flex flex-col p-6">
               <div className="flex-1 overflow-hidden mb-6">
                 {activeTab === 'list' ? (
-                  <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
+                  <>
+                    <div className="mb-3 flex items-center justify-end gap-2">
+                      <span className="mr-auto text-[10px] text-slate-500">Undo/redo restores values but revokes engineering review.</span>
+                      <button type="button" aria-label="Undo instrument edit" onClick={() => currentProjectId && undoInstruments(currentProjectId)} disabled={!canUndo} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">Undo</button>
+                      <button type="button" aria-label="Redo instrument edit" onClick={() => currentProjectId && redoInstruments(currentProjectId)} disabled={!canRedo} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">Redo</button>
+                    </div>
+                    <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
+                  </>
                 ) : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
               </div>
 

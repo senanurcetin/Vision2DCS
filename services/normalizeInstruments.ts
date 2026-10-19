@@ -65,7 +65,12 @@ export const parseInstrumentResponse = (text: string | undefined, idPrefix: stri
   // Reject excess model output instead of truncating engineering findings.
   if (raw.length > 2000) throw new ModelOutputError("AI response exceeds the 2000 instrument limit");
 
-  return raw
-    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && !Array.isArray(item))
-    .map((item, index) => normalizeInstrument(item, index, idPrefix));
+  // A malformed row may represent an omitted physical instrument. Never
+  // return a plausible-looking tag list after silently discarding that row.
+  for (const [index, item] of raw.entries()) {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      throw new ModelOutputError(`AI response contains an invalid instrument row at index ${index}.`);
+    }
+  }
+  return raw.map((item, index) => normalizeInstrument(item as Record<string, unknown>, index, idPrefix));
 };

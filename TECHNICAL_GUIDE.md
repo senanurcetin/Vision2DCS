@@ -27,7 +27,7 @@ Mapping a 2D image back to a node-based graph:
 ## 🖼 Upload and Persistence
 
 - **Upload** (`services/imageUpload.ts`): only JPEG, PNG and WebP files up to 25 MB are accepted. Drawings larger than 2048 px on the longest side are downscaled in the browser, keeping their format so line work stays crisp, before they are sent to `/api/analyze`.
-- **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Corrupt saved data is skipped instead of breaking start-up. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
+- **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Saved project records now validate instrument field types, row count and duplicate identities; corrupted records are skipped **as a whole** so no instrument silently disappears. Unsafe external/SVG image URLs are cleared, and repeated project IDs are ignored. Previously recorded local review flags remain local editor state, not signed approval. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
 
 ## 🛡 OT-Sentinel Audit Logic
 
@@ -40,7 +40,7 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 
 ## Model Output Normalization
 
-`services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
+`services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. A non-object row anywhere in a model-generated array also rejects the entire response, rather than silently discarding a potentially important instrument. Valid object rows still retain unknown classifications as low-confidence findings. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
 
 ## 📏 Evaluation
 
@@ -48,14 +48,18 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 - **Tag matching** is format-insensitive, so `FT101`, `FT 101` and `FT-101` count as the same tag. Precision and recall are micro-averaged over all samples.
 - **Signal and block type accuracy** are measured on matched tags only. An expected field may list several acceptable values.
 
-The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely.
+The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely. Their `signalConnections` labels identify directed, actually drawn *instrument signal* lines only. `eval/topology.ts` separately microaverages directed edge precision/recall/F1 using canonical tag identities, treating missing, reversed, dangling and self-links as errors. The visualization engine's inferred loop chains and physical pipe connectivity are not labelled signal edges. Topology results are printed and retained in **schema-v2** reports containing per-sample directed-signal counts and independent microaveraged topology precision/recall/F1. The report validator checks each metric family against its stored counts, preserves source drawing/label hashes and refuses cross-version comparisons. Legacy schema-v1 reports remain tag-only. No model performance claim is made without a real evaluation.
 
 ## Gemini SDK 2.x contract and image output
 
 The server uses `@google/genai@2.29.1` with `models.generateContent`, a typed JSON response schema for P&ID tag extraction, and `response.text` for decoding model output. Offline provider-mock contract tests cover both extraction and generated image paths without API credentials. Inline image responses accept only PNG, JPEG or WebP with valid base64 and a 12 MiB decoded payload limit; HTML/SVG outputs are rejected. These tests verify local SDK call shapes and response handling, **not the correctness of real Gemini model predictions**. A genuine, explicitly authorized `npm run eval` benchmark and human review are still required before production acceptance.
 
+## Bounded engineering edit history
+
+Tag edits, manual additions and deletions are recorded in a bounded 30-step, per-project, **in-memory only** undo/redo history using one React reducer for atomic state/history transitions. Imported or deleted projects start without inherited edit history; editing after undo clears the redo stack. History stores instrument arrays only (not P&ID raster images or digital-twin blobs). Undo/redo conservatively revoke **all restored row review flags** so a previous approval cannot be replayed into the current engineering snapshot. Export remains blocked until explicit human re-review. Reloading the browser clears undo/redo history, not saved projects. This is local convenience history, not a signed engineering audit trail.
+
 ## Manual editing and backup
-A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained; no vendor import claim is implied.
+A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained. Any non-object instrument row blocks both backup import and serialization to prevent a silently incomplete engineering record; valid records still undergo normalization and lose untrusted review flags. No vendor import claim is implied.
 
 ## 📊 Export Mappings
 

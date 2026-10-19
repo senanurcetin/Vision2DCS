@@ -87,10 +87,14 @@ describe('parseInstrumentResponse', () => {
     expect(result.map(i => i.id)).toEqual(['run-0', 'run-1']);
   });
 
-  it('skips entries that are not objects', () => {
-    const result = parseInstrumentResponse(JSON.stringify([null, 'PT-1', [], { tagName: 'PT-2' }]), 'run');
-    expect(result.map(i => i.tagName)).toEqual(['PT-2']);
-  });
+  it.each([null, 'PT-1', [], 42])(
+    'rejects a non-object model row instead of silently dropping %j',
+    (invalidRow) => {
+      const response = JSON.stringify([{ tagName: 'PT-1' }, invalidRow, { tagName: 'PT-2' }]);
+      expect(() => parseInstrumentResponse(response, 'run'))
+        .toThrow('invalid instrument row at index 1');
+    },
+  );
 
   it('rejects excessive AI arrays before instrument normalization', () => {
     expect(() => parseInstrumentResponse(JSON.stringify(Array.from({ length: 2001 }, () => ({tagName: 'PT-101'}))), 'run')).toThrow('2000 instrument limit');
