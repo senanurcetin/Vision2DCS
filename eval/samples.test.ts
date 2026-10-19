@@ -4,11 +4,19 @@ import path from 'node:path';
 import { ISA_NAMING_PATTERN } from '../services/tagParser';
 import type { ExpectedInstrument } from './score';
 import { scoreExplicitSignalConnections, type ExpectedSignalConnection } from './topology';
+import { prepareBenchmarkSamples } from './preflight';
 
 const samplesDir = path.resolve(__dirname, '..', 'samples');
 const samples = readdirSync(samplesDir).filter(name => statSync(path.join(samplesDir, name)).isDirectory());
 
 describe('benchmark samples', () => {
+  it('all real repository fixtures pass the exact offline paid-run preflight', async () => {
+    const prepared = await prepareBenchmarkSamples(samplesDir);
+    expect(prepared.map(item => item.name)).toEqual([...samples].sort());
+    expect(prepared.every(item => item.drawingSha256.length === 64 &&
+      item.expectedSha256.length === 64 && item.signalConnections.length > 0)).toBe(true);
+  });
+
   it('exist', () => {
     expect(samples.length).toBeGreaterThan(0);
   });
