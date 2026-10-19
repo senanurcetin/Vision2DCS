@@ -55,11 +55,13 @@ npm install
 cp .env.example .env.local
 ```
 
-Set `GEMINI_API_KEY` in `.env.local`. The key is read only on the server. The browser calls `/api/analyze` and `/api/digital-twin` and never sees the key.
+Set `GEMINI_API_KEY` in `.env.local`. **Billable AI is disabled by default** even when a Gemini key is configured. Explicitly authorize model spending before enabling `VISION2DCS_ENABLE_AI=true` and providing a distinct random `VISION2DCS_AI_ACCESS_TOKEN` (32+ characters). Enter this *operator token* in the browser's **AI access** field. It is kept in the current tab's memory only; reloading or **Clear AI token** discards it. The provider key never enters the browser. For remote deployments, use HTTPS, an identity-aware ingress and provider budget limits; a shared token is **not** full user authentication or a spending cap.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GEMINI_API_KEY` | (required) | Google AI Studio key |
+| `GEMINI_API_KEY` | (unset) | Server-side Gemini key; does not by itself activate paid AI |
+| `VISION2DCS_ENABLE_AI` | `false` | Must equal `true` for paid AI inference |
+| `VISION2DCS_AI_ACCESS_TOKEN` | (unset) | 32+ character server-only operator token required for enabled AI routes |
 | `GEMINI_ANALYSIS_MODEL` | `gemini-3-flash-preview` | Model for P&ID extraction |
 | `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` | Model for the digital-twin render |
 | `PORT` | `3000` | Port for `npm start` |
@@ -81,10 +83,10 @@ npm test
 
 ```bash
 npm run build
-GEMINI_API_KEY=... npm start
+npm start
 ```
 
-`npm run build` writes the app to `dist/` and the server to `dist-server/`. `npm start` serves both on `PORT`. The server limits each client to 20 AI requests per minute, accepts images up to 10 MB, and retries rate-limited or transient Gemini failures with backoff. The rate limit is held in memory per process and keyed by client IP, so it assumes a single instance that is not behind a shared proxy.
+`npm run build` writes the app to `dist/` and the server to `dist-server/`. `npm start` serves both on `PORT`. Disabled AI requests return HTTP 503; authorized operators with a missing or incorrect bearer token receive HTTP 401. The offline JSON backup, engineering review and export flows remain available with AI disabled. Enabled AI routes limit each client to 20 requests per minute, accept images up to 10 MB, and retry rate-limited or transient Gemini failures with backoff. The rate limit is held in memory per process and keyed by client IP, so it assumes a single instance that is not behind a shared proxy.
 
 ## Measuring extraction quality
 
@@ -117,7 +119,8 @@ The P&ID editor supports review-required low-confidence manual tag entries, spre
 - **Explicit local review.** Every model-extracted or imported instrument starts unreviewed, regardless of AI confidence or any review flag inside a JSON backup. The operator must click **Review** for each row after inspecting the drawing. Changing a tag, description, signal, block or units clears that approval; concept exports are disabled until all current rows have been reviewed. This local toggle is **not an authenticated engineering sign-off** or vendor safety certification.
 - **NEXUS Tag Map v1.** A manually downloaded, [read-only versioned JSON contract](docs/NEXUS_TAG_MAP_V1.md) is available for locally reviewed and tag-valid projects. It deliberately omits credentials, drawings, plant measurements and control commands. No automatic cross-product synchronization is implemented.
 - **Single-user storage.** Project history lives in the browser's `localStorage`, about 5 MB. A warning appears when it is full.
-- **Single-instance server.** The rate limiter is in memory, and there is no authentication. Put the app behind your own access control before exposing it.
+- **Operator-gated paid AI API.** AI endpoints are disabled by default. An explicit operator toggle and a long bearer secret are required; this shared-secret mechanism is **not identity authentication, a billing cap or protection against stolen credentials**. Require trusted HTTPS ingress, identity-aware access and provider quotas before any public exposure.
+- **Single-instance server.** Rate limiting is in memory and keyed by socket IP; reverse-proxy headers are not trusted and multiple replicas need authoritative shared upstream limits.
 - **Preview models.** The default model names are preview releases and may change. Override them with the `GEMINI_*_MODEL` variables.
 
 ## Repository highlights
