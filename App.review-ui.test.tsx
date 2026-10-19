@@ -10,6 +10,7 @@ const harness = vi.hoisted(() => ({
   csv: vi.fn(),
   abb: vi.fn(),
   bom: vi.fn(),
+  setAiAccessToken: vi.fn(),
 }));
 
 vi.mock('./hooks/useProjects', () => ({
@@ -31,6 +32,7 @@ vi.mock('./hooks/useProjects', () => ({
 vi.mock('./services/geminiService', () => ({
   analyzePIDImage: vi.fn(),
   generateDigitalTwin: vi.fn(),
+  setAiAccessToken: harness.setAiAccessToken,
 }));
 vi.mock('./services/exportService', () => ({
   downloadText: harness.downloadText,
@@ -62,6 +64,7 @@ beforeEach(async () => {
   harness.csv.mockReset();
   harness.abb.mockReset();
   harness.bom.mockReset();
+  harness.setAiAccessToken.mockReset();
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -147,6 +150,17 @@ describe('instrument review/export DOM acceptance', () => {
     await act(async () => toggle!.click());
     expect(toggle?.getAttribute('aria-expanded')).toBe('false');
     expect(sidebar?.hasAttribute('inert')).toBe(true);
+  });
+
+  it('requires a separate operator token before enabling billable AI actions', async () => {
+    harness.project = fixture([instrument]);
+    await act(async () => root.render(<App />));
+    expect(button('Process Diagram').disabled).toBe(true);
+    expect(button('Generate Digital Twin').disabled).toBe(true);
+    expect(host.querySelector<HTMLInputElement>('input[type="password"][aria-label="Operator-issued AI access token"]')).not.toBeNull();
+    await act(async () => button('Unlock AI').click());
+    expect(host.textContent).toContain('at least 32 characters');
+    expect(harness.setAiAccessToken).not.toHaveBeenCalled();
   });
 
   it('shows NEXUS branding and responsive engineering panels', async () => {

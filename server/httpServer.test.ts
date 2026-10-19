@@ -23,6 +23,9 @@ beforeAll(async () => {
     handler: async (request) => {
       const { pathname } = new URL(request.url);
       if (!pathname.startsWith('/api/')) return null;
+      if (pathname === '/api/header-echo') return Response.json({
+        authorization: request.headers.get('authorization'),
+      });
       return Response.json({ method: request.method, path: pathname, body: await request.text() });
     },
   });
@@ -39,6 +42,16 @@ describe('createAppServer', () => {
   it('forwards /api requests to the handler', async () => {
     const response = await fetch(`${base}/api/analyze`, { method: 'POST', body: '{"a":1}' });
     expect(await response.json()).toEqual({ method: 'POST', path: '/api/analyze', body: '{"a":1}' });
+  });
+
+  it('forwards an operator-provided bearer header from Node HTTP into the API handler', async () => {
+    const secret = 'operator-auth-token-at-least-thirty-two-characters';
+    const response = await fetch(`${base}/api/header-echo`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + secret },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ authorization: 'Bearer ' + secret });
   });
 
   it('rejects request bodies over the limit', async () => {
