@@ -80,6 +80,17 @@ describe('GenAI 2.x generateContent contract (offline)', () => {
     expect(sdk.generateContent).toHaveBeenCalledTimes(4);
   });
 
+  it('does not retry transient errors into multiple app-level provider calls', async () => {
+    const transient = Object.assign(new Error('offline upstream 503'), { status: 503 });
+    sdk.generateContent.mockRejectedValue(transient);
+    await expect(service().analyze({ mimeType: 'image/png', data: 'AAAA' })).rejects.toBe(transient);
+    expect(sdk.generateContent).toHaveBeenCalledTimes(1);
+    sdk.generateContent.mockClear();
+    await expect(service().digitalTwin([{ tagName: 'PT-101', description: 'Pressure' }]))
+      .rejects.toBe(transient);
+    expect(sdk.generateContent).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects oversized generated inline image payloads', async () => {
     sdk.generateContent.mockResolvedValue({
       candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/webp', data: 'A'.repeat(4 * 1024 * 1024 * 5) } }] } }],

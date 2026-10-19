@@ -80,7 +80,7 @@ export const createGeminiService = (config: ServerConfig & { apiKey: string }): 
           },
         },
       },
-    }));
+    }), { attempts: 1 });
 
     return parseInstrumentResponse(response.text, `inst-${Date.now()}`);
   };
@@ -94,7 +94,7 @@ export const createGeminiService = (config: ServerConfig & { apiKey: string }): 
       model: config.imageModel,
       contents: { parts: [{ text: prompt }] },
       config: { imageConfig: { aspectRatio: "16:9" } }
-    }));
+    }), { attempts: 1 });
 
     // SDK responses are external data, not trusted URLs. Never expose data:text/html,
     // SVG, invalid base64, or unbounded inline blobs to the engineering browser.

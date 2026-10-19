@@ -86,3 +86,49 @@ describe('atomic app-level inference request reservations', () => {
     expect(gemini.analyze).not.toHaveBeenCalled();
   });
 });
+
+
+describe('cross-route paid-inference concurrency', () => {
+  it('does not spend its finite request allowance on a rejected busy operation', async () => {
+    let finish!: (rows: never[]) => void;
+    let enter!: () => void;
+    const entered = new Promise<void>(resolve => { enter = resolve; });
+    const pending = new Promise<never[]>(resolve => { finish = resolve; });
+    const analyze = vi.fn(async () => { enter(); return pending; });
+    const handler = createApiHandler({
+      getGemini: () => ({ analyze, digitalTwin: vi.fn(async () => 'data:image/png;base64,AAAA') }) as unknown as GeminiService,
+      allowRequest: () => true, authorizeRequest: () => true, aiEnabled: true,
+      reserveInference: createInferenceRequestCap(2),
+      acquireInferenceSlot: createInferenceConcurrencyGate(1),
+      log: () => {},
+    });
+    const run = () => handler(post('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }), 'test-client');
+    const twin = () => handler(post('/api/digital-twin', {
+      instruments: [{ tagName: 'PT-102', description: 'Pressure' }],
+    }), 'test-client');
+    const first = run();
+    await entered;
+    expect((await twin())?.status).toBe(429);
+    finish([]);
+    expect((await first)?.status).toBe(200);
+    expect((await twin())?.status).toBe(200);
+    expect((await run())?.status).toBe(429);
+    expect(analyze).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases slots after failed calls without refunding the spent allowance', async () => {
+    const analyze = vi.fn().mockRejectedValueOnce(new Error('offline failure')).mockResolvedValue([]);
+    const handler = createApiHandler({
+      getGemini: () => ({ analyze, digitalTwin: vi.fn() }) as unknown as GeminiService,
+      allowRequest: () => true, authorizeRequest: () => true, aiEnabled: true,
+      reserveInference: createInferenceRequestCap(2),
+      acquireInferenceSlot: createInferenceConcurrencyGate(1),
+      log: () => {},
+    });
+    const run = () => handler(post('/api/analyze', { image: PNG_FIXTURE, mimeType: 'image/png' }), 'test-client');
+    expect((await run())?.status).toBe(502);
+    expect((await run())?.status).toBe(200);
+    expect((await run())?.status).toBe(429);
+    expect(analyze).toHaveBeenCalledTimes(2);
+  });
+});
