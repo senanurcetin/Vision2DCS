@@ -75,7 +75,7 @@ const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
             <div className="text-right">
               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Est. Project Capex</div>
               <div className="text-xl font-bold text-blue-400">{bom.estimatedCount === 0 ? "Not estimated" : "USD " + bom.total.toLocaleString()}</div>
-              {!bom.isComplete && <div role="status" className="text-[10px] text-amber-300">Partial estimate: {bom.missingCount} unpriced item(s)</div>
+              {!bom.isComplete && <div role="status" className="text-[10px] text-amber-300">Partial estimate: {bom.missingCount} unpriced item(s)</div>}
             </div>
           </div>
         </div>
