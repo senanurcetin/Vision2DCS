@@ -40,6 +40,10 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 3. **Functional**: Does an analog signal (AI/AO) lack engineering units? Does the description mention a safety function (relief, ESD, interlock...) that needs IEC 61511 / SIL review?
 4. **Topology**: Does a flow loop (`F-...`) contain an analog input but no final control element (an AO signal or a tag whose function letters end in `V`)?
 
+## Conceptual BOM estimate integrity
+
+BOM costs are unverified estimates, not vendor quotations. Normalization, UI and CSV use `services/bomCost.ts`: only finite nonnegative unit estimates no greater than USD 1 billion are recognized. Missing or invalid values display **Not estimated** instead of $0, and the UI labels totals partial if equipment remains unpriced. The CSV leaves invalid estimated unit costs blank. Procurement prices require vendor verification.
+
 ## Backup schema integrity
 
 Backup export and import share the stored-project typed-field validator. Every instrument must have all expected typed fields, supported classifications, a nonempty row ID and tag, and distinct editor row IDs. Incomplete, malformed or duplicate rows reject the entire backup rather than silently manufacturing tags or classifications. Imported backups still receive new editor IDs and any claimed human-reviewed flags are cleared. Existing unstructured legacy backups must be repaired at the source instead of best-effort coercion.
