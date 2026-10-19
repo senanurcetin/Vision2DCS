@@ -40,7 +40,7 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
  * Web-standard handler for the /api routes. Returns null for paths it does not
  * own so hosts can fall through to static files.
  */
-export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = true, authorizeRequest = () => true, log = console.error }: ApiDeps) =>
+export const createApiHandler = ({ getGemini, allowRequest, aiEnabled = false, authorizeRequest = () => false, log = console.error }: ApiDeps) =>
   async (request: Request, clientId: string): Promise<Response | null> => {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;

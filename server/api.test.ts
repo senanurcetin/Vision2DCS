@@ -14,6 +14,9 @@ const setup = (options: { gemini?: GeminiService | null; allow?: boolean } = {})
   const handler = createApiHandler({
     getGemini: () => gemini,
     allowRequest: () => options.allow ?? true,
+    // Explicit test harness opt-in uses a mock Gemini service, never provider API.
+    aiEnabled: true,
+    authorizeRequest: () => true,
     log: () => {},
   });
   const call = (path: string, body?: unknown, method = 'POST') =>
