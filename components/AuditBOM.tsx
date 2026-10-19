@@ -2,6 +2,7 @@
 import React from 'react';
 import { Instrument } from '../types';
 import { estimatedUnitCost, summarizeEstimatedBom } from '../services/bomCost';
+import { runSentinelAudit } from '../services/otSentinelService';
 
 interface Props {
   instruments: Instrument[];
@@ -10,7 +11,20 @@ interface Props {
 
 const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
   const bom = summarizeEstimatedBom(instruments);
-  const issues = instruments.filter(inst => inst.safetyWarning);
+  const issues = [
+    ...runSentinelAudit(instruments).map((alert, index) => ({
+      key: 'sentinel-' + index,
+      tag: alert.tag,
+      severity: alert.severity,
+      message: alert.message,
+    })),
+    ...instruments.filter(inst => !!inst.safetyWarning?.trim()).map(inst => ({
+      key: 'model-' + inst.id,
+      tag: inst.tagName,
+      severity: 'warning' as const,
+      message: 'Unverified model safety note: ' + inst.safetyWarning,
+    })),
+  ];
 
   return (
     <div className="space-y-6 h-full overflow-auto custom-scrollbar p-1">
@@ -26,13 +40,19 @@ const AuditBOM: React.FC<Props> = ({ instruments, onExport }) => {
         <div className="space-y-2">
           {issues.length === 0 ? (
             <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm font-medium">
-              No safety-warning fields flagged in the current data. This is not a certified safety or standards audit.
+              No findings from the limited tag/loop checks or model safety notes. This is not a certified safety or standards audit.
             </div>
           ) : (
-            issues.map(inst => (
-              <div key={inst.id} className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex gap-3">
-                <div className="font-bold text-red-400 text-xs mt-0.5">{inst.tagName}</div>
-                <div className="text-slate-400 text-xs leading-relaxed">{inst.safetyWarning}</div>
+            issues.map(issue => (
+              <div key={issue.key} className={'p-4 rounded-xl flex gap-3 border ' +
+                (issue.severity === 'error' ? 'bg-red-500/10 border-red-500/20' :
+                  issue.severity === 'warning' ? 'bg-amber-500/10 border-amber-500/20' :
+                    'bg-cyan-500/10 border-cyan-500/20')}>
+                <div className="font-bold text-xs mt-0.5 text-slate-200">{issue.tag}</div>
+                <div className="text-slate-300 text-xs leading-relaxed">
+                  <span className="font-bold uppercase">{issue.severity}: </span>
+                  {issue.message}
+                </div>
               </div>
             ))
           )}

@@ -40,6 +40,25 @@ describe('BOM rendering of unverified estimates', () => {
     expect(missing).toContain('Partial estimate: 1 unpriced item(s)');
   });
 
+  it('shows duplicate tag and naming audit findings even without model safety-warning strings', () => {
+    const html = renderToStaticMarkup(<AuditBOM instruments={[
+      inst('PT-101'), { ...inst('PT-102'), tagName: 'pt101' },
+      inst('NOT-VALID/TAG'),
+    ]} />);
+    expect(html).toContain('Duplicate instrument tag PT-101');
+    expect(html).toContain('Non-standard ISA-5.1 naming');
+    expect(html).not.toContain('No findings from the limited tag/loop checks');
+  });
+
+  it('distinguishes unverified model safety notes from deterministic audit findings', () => {
+    const html = renderToStaticMarkup(<AuditBOM instruments={[
+      { ...inst('PT-101'), safetyWarning: 'Review pressure sensor placement' },
+    ]} />);
+    expect(html).toContain('Unverified model safety note');
+    expect(html).toContain('Review pressure sensor placement');
+    expect(html).not.toContain('certified approval');
+  });
+
   it('never treats lack of safety-warning strings as certified plant safety', () => {
     const html = renderToStaticMarkup(<AuditBOM instruments={[]} />);
     expect(html).toContain('not a certified safety or standards audit');

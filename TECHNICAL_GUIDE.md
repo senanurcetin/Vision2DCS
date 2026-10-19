@@ -40,6 +40,10 @@ The audit engine (`otSentinelService.ts`) performs these checks:
 3. **Functional**: Does an analog signal (AI/AO) lack engineering units? Does the description mention a safety function (relief, ESD, interlock...) that needs IEC 61511 / SIL review?
 4. **Topology**: Does a flow loop (`F-...`) contain an analog input but no final control element (an AO signal or a tag whose function letters end in `V`)?
 
+## Consistent read-only safety findings
+
+The BOM Safety & Naming Audit now displays deterministic OT-Sentinel tag/loop checks (errors, warnings and informational heuristics) even if Gemini did not populate `safetyWarning`. Model-supplied notes are presented separately as **unverified** safety notes. Neither audit tab certifies ISA-5.1, IEC 61511 or SIL compliance, and neither can issue OT commands.
+
 ## Conceptual BOM estimate integrity
 
 BOM costs are unverified estimates, not vendor quotations. Normalization, UI and CSV use `services/bomCost.ts`: only finite nonnegative unit estimates no greater than USD 1 billion are recognized. Missing or invalid values display **Not estimated** instead of $0, and the UI labels totals partial if equipment remains unpriced. The CSV leaves invalid estimated unit costs blank. Procurement prices require vendor verification.
