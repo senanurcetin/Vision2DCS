@@ -17,7 +17,9 @@
     "eval:compare": "vite-node eval/compare-cli.ts",
     "eval:preflight": "vite-node eval/preflight-cli.ts",
     "eval:inspect": "vite-node eval/inspect-cli.ts",
-    "eval:diagnose": "vite-node eval/diagnostics-cli.ts"
+    "eval:diagnose": "vite-node eval/diagnostics-cli.ts",
+    "eval:ocr": "vite-node eval/ocr-cli.ts",
+    "eval:compare-tags": "vite-node eval/compare-tags-cli.ts"
   },
   "dependencies": {
     "@google/genai": "2.29.1",
