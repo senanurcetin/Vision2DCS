@@ -25,6 +25,10 @@ describe('explicit directed signal topology guard', () => {
     const invalidSource = analyzeSignalTopology([inst('bad/source', 'FIC-101'), inst('FIC-101')]);
     expect(invalidSource.edges).toEqual([]);
     expect(invalidSource.issues[0].severity).toBe('error');
+    expect(analyzeSignalTopology([inst('FT-1', 'FIC-101'), inst('FIC-101')]).edges).toEqual([]);
+    const malformedTarget = analyzeSignalTopology([inst('FIC-101', 'FT-1'), inst('FT-1')]);
+    expect(malformedTarget.edges).toEqual([]);
+    expect(messages([inst('FIC-101', 'FT-1'), inst('FT-1')])).toMatch(/does not meet the demo ISA tag convention/);
   });
 
   it('fails closed when repeated internal IDs make source or target links ambiguous', () => {
