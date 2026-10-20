@@ -166,3 +166,7 @@ The NEXUS Tag Management table now has a **Signal to** input with project tag su
 ### Lossless project identity and navigation
 
 All newly analyzed drawings, imported project backups, bundled demo sessions and manual instrument groups use collision-resistant local IDs. A reducer-level guard prevents accidental replacement of saved project data even if an ID collision is introduced by another caller. When deleting the currently selected project, the next remaining project opens automatically; invalid project selections are ignored. Existing projects are never migrated, silently rewritten, or deleted by this change.
+
+### Two independent offline engineering scenarios
+
+The public demo now includes a **flow-control** reference (5 instruments, 2 annotated directional signal links) and a **tank-level** reference (6 instruments, 2 annotated links), each with its own checked-in PNG/SVG and reference labels. Open them through **Load sample P&ID** or **Tank-level sample** (or the welcome-screen choices). Both are purely hand-labelled synthetic demonstrations; they are not model predictions or evidence of AI extraction quality. Every new demo project starts unreviewed and offline. The Chromium browser suite independently exercises both scenarios.

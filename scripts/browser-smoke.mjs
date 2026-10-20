@@ -81,7 +81,7 @@ try {
   if (await sampleRows.first().locator('input').first().inputValue() !== 'FT-101') {
     throw new Error('Selected synthetic project disappeared after refresh.');
   }
-  await page.getByText('Synthetic sample · five draft tags', { exact: false }).waitFor();
+  await page.getByText('Synthetic sample · 5 draft tags', { exact: false }).waitFor();
   // Inspect and edit a declared directed link without ever calling an AI API.
   const flowTarget = page.getByLabel('Signal target for FT-101');
   if (await flowTarget.inputValue() !== 'FIC-101') throw new Error('Synthetic signal graph is missing FT->FIC.');
@@ -220,8 +220,25 @@ try {
     await page.locator('header').waitFor({ state: 'visible' });
     await page.screenshot({ path: output + '/nexus-' + width + '.png', animations: 'disabled' });
   }
+  // Distinct offline engineering example: same-origin image, 6 draft rows,
+  // two declared connections and independent project history.
+  await page.getByRole('button', { name: 'Tank-level sample' }).click();
+  const tankRows = page.locator('table tbody tr');
+  await tankRows.first().locator('input').first().waitFor({ state: 'visible' });
+  if (await tankRows.count() !== 6 ||
+      await tankRows.first().locator('input').first().inputValue() !== 'LT-201') {
+    throw new Error('Tank-level scenario is not a separate six-tag engineering case.');
+  }
+  await page.getByText('Synthetic sample · 6 draft tags', { exact: false }).waitFor();
+  if (await page.getByRole('button', { name: 'NEXUS TAG MAP' }).isEnabled()) {
+    throw new Error('Alternate demo must never inherit previous human review flags.');
+  }
+  if (await page.getByLabel('Signal target for LT-201').inputValue() !== 'LIC-201' ||
+      await page.getByLabel('Signal target for LIC-201').inputValue() !== 'LV-201') {
+    throw new Error('Alternate demo connections differ from the checked-in reference labels.');
+  }
   if (apiRequests.length) throw new Error('Offline browser smoke unexpectedly called paid AI API routes.');
-  console.log('Chromium smoke PASS: edited directed signal graph and CSV, project continuity, NEXUS JSON / Siemens CSV / ABB XML downloads, review gate and 375/768/1440 viewports.');
+  console.log('Chromium smoke PASS: both independent synthetic P&IDs, directed signal graph and CSV, session continuity, NEXUS/Siemens/ABB downloads, review gate and 375/768/1440 viewports.');
 } finally {
   await browser.close();
 }
