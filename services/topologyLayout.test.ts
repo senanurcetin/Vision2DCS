@@ -73,6 +73,14 @@ describe('buildConnections', () => {
     ])).toEqual(['PT-1>PV-1']);
   });
 
+  it('keeps declared direction when it opposes a visual loop-order heuristic', () => {
+    expect(pairs([
+      inst('FT-101'),
+      inst('FIC-101', { pcs7BlockType: 'PIDConL', signalType: 'AO', connectedTo: 'FT-101' }),
+      inst('FCV-101', { pcs7BlockType: 'VlvAnL', signalType: 'AO' }),
+    ])).toEqual(['FIC-101>FT-101', 'FIC-101>FCV-101']);
+  });
+
   it('matches connectedTo references using canonical tag identity', () => {
     expect(pairs([
       inst('PT-5', { connectedTo: ' pv101a ' }),
