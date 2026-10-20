@@ -1,5 +1,6 @@
 import { Instrument } from '../types';
-import { canonicalizeTag, getLoopKey, isValveTag, parseTag } from './tagParser';
+import { getLoopKey, isValveTag, parseTag } from './tagParser';
+import { analyzeSignalTopology } from './signalTopology';
 
 export type LoopRole = 'sensor' | 'controller' | 'actuator';
 
@@ -45,23 +46,14 @@ export interface Connection {
 }
 
 /**
- * Signal lines: each loop chained in role order, plus the model's connectedTo
- * links (which may cross loops). Partial model links never drop the loop chain.
+ * Signal lines: each loop chained in role order, plus independently validated
+ * declared links (which may cross loops). Raw connectedTo is NEVER trusted as
+ * visual wiring evidence. Invalid links are reported by OT-Sentinel instead.
  */
 export const buildConnections = (groups: LoopGroup[]): Connection[] => {
-  const tagKey = (tagName: string) => canonicalizeTag(tagName) ?? tagName.trim().toUpperCase();
-  // Duplicate canonical labels are ambiguous: never silently route a model
-  // reference to whichever instrument happened to appear last.
-  const byTag = new Map<string, Instrument | null>();
-  groups.forEach(g => g.items.forEach(i => {
-    const key = tagKey(i.tagName);
-    if (byTag.has(key)) {
-      byTag.set(key, null);
-    } else {
-      byTag.set(key, i);
-    }
-  }));
-
+  const instruments = groups.flatMap(group => group.items);
+  const byId = new Map(instruments.map(instrument => [instrument.id, instrument]));
+  const validated = analyzeSignalTopology(instruments).edges;
   const connections: Connection[] = [];
   const seen = new Map<string, { index: number; declared: boolean }>();
   const add = (source: Instrument, target: Instrument, declared = false) => {
@@ -86,9 +78,10 @@ export const buildConnections = (groups: LoopGroup[]): Connection[] => {
     if (loopId === 'Misc') return;
     for (let i = 1; i < items.length; i++) add(items[i - 1], items[i]);
   });
-  groups.forEach(({ items }) => items.forEach(source => {
-    const target = source.connectedTo ? byTag.get(tagKey(source.connectedTo)) : undefined;
-    if (target) add(source, target, true);
-  }));
+  for (const edge of validated) {
+    const source = byId.get(edge.sourceId);
+    const target = byId.get(edge.targetId);
+    if (source && target) add(source, target, true);
+  }
   return connections;
 };
