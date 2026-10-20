@@ -70,3 +70,13 @@ grant backend access or enable inference. A separate empty-state CTA loads the
 existing synthetic flow-control fixture. Local dev/Node builds omit the flag
 and preserve guarded AI functionality. The browser smoke workflow runs
 both `developer` and `public` jobs to prevent mode regressions.
+
+## Review and project integrity (vNext)
+
+The project reducer refuses duplicate IDs rather than overwriting an earlier
+engineering project. Browser-generated project, demo and manual-row IDs carry
+fresh random entropy and a monotonically increasing local suffix. Deleting the
+selected project selects the next available project instead of showing a blank
+workspace. The NEXUS readiness panel reports explicitly reviewed instrument
+coverage and critical versus advisory heuristic findings; green/eligible output
+**never** implies certified engineering or signed approval.

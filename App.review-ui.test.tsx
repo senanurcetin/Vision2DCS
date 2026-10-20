@@ -101,9 +101,15 @@ describe('instrument review/export DOM acceptance', () => {
       expect(button(label).disabled, label).toBe(true);
     }
     expect(host.textContent).toContain('Explicit human review');
+    expect(host.textContent).toContain('Local review: 0/1 tags');
+    const progress = host.querySelector<HTMLProgressElement>('progress[aria-label="Human-reviewed instrument coverage"]');
+    expect(progress?.value).toBe(0);
+    expect(progress?.max).toBe(1);
     expect(host.querySelector<HTMLImageElement>('img[alt^="P&ID drawing:"]')?.className).toContain('max-w-full');
 
     await act(async () => review('Mark PT-101 reviewed').click());
+    expect(host.textContent).toContain('Local review: 1/1 tags');
+    expect(host.textContent).toContain('Concept exports eligible');
     for (const label of ['SIEMENS PCS7', 'ABB 800xA', 'NEXUS TAG MAP']) {
       expect(button(label).disabled, label).toBe(false);
     }

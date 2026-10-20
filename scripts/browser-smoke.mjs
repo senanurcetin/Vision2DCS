@@ -69,6 +69,11 @@ try {
   if (await page.getByRole('button', { name: 'NEXUS TAG MAP' }).isEnabled()) {
     throw new Error('Synthetic example must still require engineer review.');
   }
+  await page.getByText('Local review: 0/5 tags').waitFor();
+  const reviewProgress = page.getByRole('progressbar', { name: 'Human-reviewed instrument coverage' });
+  if (await reviewProgress.getAttribute('value') !== '0') {
+    throw new Error('Review readiness must start at zero for a synthetic project.');
+  }
   // The selected synthetic project must remain open after a full reload.
   await page.waitForFunction(() => localStorage.getItem('dcs_selected_project_id')?.startsWith('demo-'));
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -96,6 +101,8 @@ try {
     await page.getByRole('button', { name: 'Mark ' + tag + ' reviewed' }).click();
   }
   if (!(await linkCsv.isEnabled())) throw new Error('Review should enable declared link export.');
+  await page.getByText('Local review: 5/5 tags').waitFor();
+  await page.getByText('Concept exports eligible', { exact: false }).waitFor();
   const linksPromise = page.waitForEvent('download');
   await linkCsv.click();
   const linksDownload = await linksPromise;
