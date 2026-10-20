@@ -44,7 +44,10 @@ The Tag Management **Signal to** field edits one optional directed instrument
 connection per row. Editing revokes that row's local human review. OT-Sentinel
 reports unresolved, ambiguous, self-referencing or cyclic links as critical
 errors that block all concept exports. HMI cyan edges are independently resolved
-declared links. Gray dashed edges are ONLY visualization heuristics, never
+declared links. A missing, invalid or ambiguous **source** tag, ambiguous
+target tag, or duplicated internal instrument-row ID must not produce a cyan
+edge; these are critical findings rather than independent wiring evidence.
+Gray dashed edges are ONLY visualization heuristics, never
 plant connection evidence. Reviewed **SIGNAL LINKS CSV** downloads contain only
 declared directional links labelled "not certified". It is not vendor-native
 import data, and the system has no live OT integration.
