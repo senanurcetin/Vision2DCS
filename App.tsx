@@ -16,6 +16,7 @@ import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
 import { createSyntheticDemoProject } from './services/offlineDemo';
+import { createLocalId } from './services/localIds';
 
 type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
@@ -89,7 +90,7 @@ const App: React.FC = () => {
       const image = await prepareImage(file);
       const instruments = await analyzePIDImage(image.base64, image.mimeType);
       addProject({
-        id: `proj-${Date.now()}`,
+        id: createLocalId('proj'),
         name: file.name.replace(/\.[^/.]+$/, ""),
         date: new Date().toLocaleString(),
         imageUrl: image.dataUrl,
@@ -106,7 +107,7 @@ const App: React.FC = () => {
     setErrorMessage(null);
     try {
       // A local raster and pre-labelled synthetic data only. Never invoke Gemini.
-      addProject(await createSyntheticDemoProject(`demo-${Date.now()}`));
+      addProject(await createSyntheticDemoProject(createLocalId('demo')));
       setLeftPanelView('image');
       setActiveTab('list');
       setIsSidebarOpen(false);
@@ -146,7 +147,7 @@ const App: React.FC = () => {
 
   const addInstrument = useCallback(() => {
     if (!currentProjectId) return;
-    const prefix = 'manual-' + Date.now();
+    const prefix = createLocalId('manual');
     editInstruments(currentProjectId, instruments => [
       ...instruments,
       // Manual entries still start as Unknown/low and require explicit review.
@@ -170,7 +171,7 @@ const App: React.FC = () => {
     if (!file) return;
     try {
       assertProjectBackupBytes(file.size);
-      addProject(parseProjectBackup(await file.text(), `proj-${Date.now()}`));
+      addProject(parseProjectBackup(await file.text(), createLocalId('proj')));
       setErrorMessage(null);
       setIsSidebarOpen(false);
     } catch (err) {

@@ -158,3 +158,7 @@ Valid local projects reopen after a browser refresh, restoring the last selected
 ### Advanced signal-link engineering (read-only concept)
 
 The NEXUS Tag Management table now has a **Signal to** input with project tag suggestions. Editing a directed link revokes local review. Unresolved, ambiguous, self-links and cycles are diagnosed by OT-Sentinel and block concept exports. In HMI, **cyan** edges are declared directional connections, whereas **gray dashed** edges are inferred layout only. After explicit review, **SIGNAL LINKS CSV** exports declared edges with their direction and an uncertified-evidence label. No real plant or vendor-import compatibility is claimed.
+
+### Lossless project identity and navigation
+
+All newly analyzed drawings, imported project backups, bundled demo sessions and manual instrument groups use collision-resistant local IDs. A reducer-level guard prevents accidental replacement of saved project data even if an ID collision is introduced by another caller. When deleting the currently selected project, the next remaining project opens automatically; invalid project selections are ignored. Existing projects are never migrated, silently rewritten, or deleted by this change.

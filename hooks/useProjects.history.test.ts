@@ -37,10 +37,29 @@ describe('project reducer engineering history', () => {
     expect(projectReducer(reverted, { type: 'select', id: 'b' }).histories.a.past).toEqual([]);
     const removed = projectReducer(reverted, { type: 'remove', id: 'a' });
     expect(removed.histories.a).toBeUndefined();
-    expect(removed.currentId).toBeNull();
-    const imported = projectReducer(reverted, { type: 'add', project: project('a', 'PT-900') });
-    expect(imported.histories.a).toBeUndefined();
+    expect(removed.currentId).toBe('b');
+    const imported = projectReducer(reverted, { type: 'add', project: project('c', 'PT-900') });
+    expect(imported.histories.a).toEqual(reverted.histories.a);
+    expect(imported.projects[0].id).toBe('c');
     expect(imported.projects[0].instruments[0].tagName).toBe('PT-900');
+  });
+
+  it('never overwrites a saved project on a colliding ID or selects a missing project', () => {
+    const original = state();
+    const attempted = projectReducer(original, { type: 'add', project: project('a', 'PT-999') });
+    expect(attempted).toBe(original);
+    expect(attempted.projects[0].instruments[0].tagName).toBe('PT-101');
+    expect(projectReducer(original, { type: 'select', id: 'missing' })).toBe(original);
+  });
+
+  it('opens the next remaining project after deleting the selected one', () => {
+    const initial = state();
+    const removed = projectReducer(initial, { type: 'remove', id: 'a' });
+    expect(removed.currentId).toBe('b');
+    expect(removed.projects.map(p => p.id)).toEqual(['b']);
+    const empty = projectReducer(removed, { type: 'remove', id: 'b' });
+    expect(empty.currentId).toBeNull();
+    expect(empty.projects).toEqual([]);
   });
 
   it('does not record history for a drawing-only update or a missing project', () => {
