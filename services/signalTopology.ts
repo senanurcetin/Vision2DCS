@@ -1,5 +1,5 @@
 import type { Instrument, SentinelAlert } from '../types';
-import { canonicalizeTag } from './tagParser';
+import { canonicalizeTag, isValidIsaTag } from './tagParser';
 
 export interface ValidatedSignalEdge {
   sourceId: string;
@@ -64,7 +64,7 @@ export const analyzeSignalTopology = (instruments: ReadonlyArray<Instrument>): S
     // falsely imply the source was unambiguously identified.
     if (duplicatedIds.has(source.id)) continue; // already reported above
     const sourceKey = canonicalizeTag(source.tagName);
-    if (!sourceKey || byCanonicalTag.get(sourceKey) !== source) {
+    if (!sourceKey || !isValidIsaTag(source.tagName) || byCanonicalTag.get(sourceKey) !== source) {
       issues.push({
         tag: source.tagName, severity: 'error',
         message: 'Ambiguous or invalid directed signal source. Assign a unique, valid source tag before drawing this link.',
@@ -93,6 +93,13 @@ export const analyzeSignalTopology = (instruments: ReadonlyArray<Instrument>): S
       issues.push({
         tag: source.tagName, severity: 'error',
         message: 'Directed signal target ' + canonical + ' is ambiguous because multiple tags have that identity.',
+      });
+      continue;
+    }
+    if (!isValidIsaTag(target.tagName)) {
+      issues.push({
+        tag: source.tagName, severity: 'error',
+        message: 'Directed signal target ' + canonical + ' does not meet the demo ISA tag convention.',
       });
       continue;
     }
