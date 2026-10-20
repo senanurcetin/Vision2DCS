@@ -1,5 +1,7 @@
 import { Instrument } from "../types";
 import { estimatedUnitCost, summarizeEstimatedBom } from "./bomCost";
+import { analyzeSignalTopology } from './signalTopology';
+import { conceptExportBlockers } from './conceptExportGate';
 
 // Characters XML 1.0 does not allow at all (C0 controls other than tab, LF, CR).
 const INVALID_XML_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g;
@@ -50,6 +52,30 @@ export const buildAbbXml = (instruments: Instrument[]): string => {
   xml += `</ABB_800xA_Import>`;
   return xml;
 };
+
+/**
+ * Inspectable, reviewed directional declarations only.
+ * Inferred HMI chains are not included and no vendor approval is implied.
+ */
+export const buildSignalLinksCsv = (instruments: Instrument[]): string => {
+  const blockers = conceptExportBlockers(instruments);
+  if (blockers.length) throw new Error('Signal link export blocked: ' + blockers[0]);
+  const edges = analyzeSignalTopology(instruments).edges;
+  const byId = new Map(instruments.map(row => [row.id, row]));
+  const rows = edges.map(edge => [
+    edge.sourceTag, edge.targetTag,
+    byId.get(edge.sourceId)?.signalType ?? '',
+    byId.get(edge.targetId)?.signalType ?? '',
+    'Declared in project; not certified',
+  ]);
+  return [
+    ['Source Tag', 'Target Tag', 'Source Signal', 'Target Signal', 'Evidence'],
+    ...rows,
+  ].map(row => row.map(escapeCsvField).join(';')).join('\r\n') + '\r\n';
+};
+
+export const downloadSignalLinksCSV = (instruments: Instrument[], filename: string) =>
+  downloadText('\uFEFF' + buildSignalLinksCsv(instruments), filename + '_Signal_Links.csv', 'text/csv');
 
 export const downloadSiemensCSV = (instruments: Instrument[], filename: string) => {
   // UTF-8 BOM so Excel opens units such as "°C" and non-ASCII descriptions correctly
