@@ -26,7 +26,7 @@ export const canonicalTag = (tagName: string): string => {
 };
 
 const accepts = (expected: string | string[] | undefined, actual: string) =>
-  expected === undefined || (Array.isArray(expected) ? expected.includes(actual) : expected === actual);
+  expected !== undefined && (Array.isArray(expected) ? expected.includes(actual) : expected === actual);
 
 export interface ExtractedInstrument {
   tagName: string;

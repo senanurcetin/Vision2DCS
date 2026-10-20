@@ -74,6 +74,7 @@ export async function prepareBenchmarkSamples(directory: string): Promise<Prepar
     for (const row of parsed.instruments) {
       if (!record(row) || typeof row.tagName !== 'string' ||
           !ISA_NAMING_PATTERN.test(row.tagName) ||
+          row.signalType === undefined || row.pcs7BlockType === undefined ||
           !classification(row.signalType, allowedSignals) ||
           !classification(row.pcs7BlockType, allowedBlocks)) {
         throw new Error('Invalid benchmark instrument label: ' + name);

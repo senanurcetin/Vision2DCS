@@ -170,3 +170,7 @@ All newly analyzed drawings, imported project backups, bundled demo sessions and
 ### Two independent offline engineering scenarios
 
 The public demo now includes a **flow-control** reference (5 instruments, 2 annotated directional signal links) and a **tank-level** reference (6 instruments, 2 annotated links), each with its own checked-in PNG/SVG and reference labels. Open them through **Load sample P&ID** or **Tank-level sample** (or the welcome-screen choices). Both are purely hand-labelled synthetic demonstrations; they are not model predictions or evidence of AI extraction quality. Every new demo project starts unreviewed and offline. The Chromium browser suite independently exercises both scenarios.
+
+### Scientific evidence inventory (zero API calls)
+
+Run `npm run eval:inspect` for a source-hashed JSON inventory of all real checked-in synthetic P&ID fixtures: number of independent drawings, independently labelled tags and drawn directional signal links, signal/block coverage and ambiguous reference types. The output explicitly declares itself **unscored** and identifies insufficient independent drawing coverage. No AI metric is invented and no API key is needed. `npm run eval:preflight` now requires complete signal and PCS7 reference classifications before any paid call, and the scorer no longer awards correct classifications for missing ground-truth labels. Statistical generalization and real-model precision/recall remain unverified until independent drawings and authorized Gemini runs are available.
