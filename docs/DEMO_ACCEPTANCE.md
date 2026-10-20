@@ -125,3 +125,22 @@ Both desktop and public static demo builds must run this exercise entirely
 offline. The Chromium smoke checks level trip, acknowledgement, clearing,
 sensor fault and selection of the flow scenario. Educational effects are text
 only and must never be sent to a PLC/DCS or interpreted as an interlock design.
+
+## Local source-hashed research report explorer
+
+The **Research Evidence** tab accepts a locally selected v1/v2 benchmark JSON
+up to 8 MiB. The viewer runs the exact `validateBenchmarkReport` integrity
+checks used by the offline diagnostics CLI and refuses forged score summaries,
+missing sample hashes, unsupported schemas and invalid counts. Failed imports
+clear the previously loaded record rather than leaving stale accepted evidence.
+No report data leaves the browser or persists in storage.
+
+Micro F1, per-drawing macro F1 with contributing-drawing coverage, a weakest
+tag drawing, optional v2 directed-edge macro F1, and each drawing/label SHA-256
+are explicitly displayed. An unavailable denominator appears as N/A. This
+is a read-only numerical exploration of **user-provided evidence**, not a
+model evaluation initiated by the UI or independent confirmation of provider
+provenance, ground-truth label quality, plant applicability or certification.
+
+Chromium smoke must check the valid synthetic **test-only** JSON and reject an
+altered summary in both developer and public static builds without /api calls.
