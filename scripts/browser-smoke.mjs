@@ -78,7 +78,7 @@ try {
   }
   await page.getByText('Synthetic sample · five draft tags', { exact: false }).waitFor();
   // Inspect and edit a declared directed link without ever calling an AI API.
-  const flowTarget = page.getByRole('textbox', { name: 'Signal target for FT-101' });
+  const flowTarget = page.getByLabel('Signal target for FT-101');
   if (await flowTarget.inputValue() !== 'FIC-101') throw new Error('Synthetic signal graph is missing FT->FIC.');
   await flowTarget.fill('ZZ-999');
   await page.getByText('Directed signal target ZZ-999 does not exist', { exact: false }).first()
