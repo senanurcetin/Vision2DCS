@@ -11,6 +11,41 @@ const inst = (tagName: string, connectedTo?: string, id = tagName): Instrument =
 const messages = (rows: Instrument[]) => analyzeSignalTopology(rows).issues.map(i => i.message).join('; ');
 
 describe('explicit directed signal topology guard', () => {
+
+  it('never displays an explicit HMI edge from an ambiguous or invalid source tag', () => {
+    const duplicateSources = [
+      inst('FT-101', 'FIC-101', 'first'), inst('ft101', undefined, 'second'),
+      inst('FIC-101'), inst('PT-201', 'FIC-101'),
+    ];
+    const result = analyzeSignalTopology(duplicateSources);
+    expect(result.edges.map(edge => edge.sourceTag + '>' + edge.targetTag))
+      .toEqual(['PT-201>FIC-101']);
+    expect(result.issues.some(issue => issue.message.includes('Ambiguous or invalid directed signal source')))
+      .toBe(true);
+    const invalidSource = analyzeSignalTopology([inst('bad/source', 'FIC-101'), inst('FIC-101')]);
+    expect(invalidSource.edges).toEqual([]);
+    expect(invalidSource.issues[0].severity).toBe('error');
+  });
+
+  it('fails closed when repeated internal IDs make source or target links ambiguous', () => {
+    const rows = [
+      inst('FT-101', 'FIC-101', 'repeated-id'),
+      inst('FIC-101', undefined, 'repeated-id'),
+      inst('PT-201', 'FIC-101'),
+    ];
+    const snapshot = structuredClone(rows);
+    const result = analyzeSignalTopology(rows);
+    expect(result.edges).toEqual([]);
+    expect(result.issues.some(issue => issue.message.includes('share one internal ID'))).toBe(true);
+    expect(result.issues.some(issue => issue.message.includes('duplicate internal row ID'))).toBe(true);
+    expect(rows).toEqual(snapshot);
+
+    // Duplicate IDs must remain an engineering error even when no explicit
+    // connection is declared; resolving source identity precedes link review.
+    const noEdges = analyzeSignalTopology([inst('TT-201', undefined, 'dup'), inst('LT-201', undefined, 'dup')]);
+    expect(noEdges.issues.some(issue => issue.severity === 'error')).toBe(true);
+  });
+
   it('resolves canonical aliases and cross-loop links in the original direction', () => {
     const data = [inst('FT-101', 'fic101'), inst('FIC-101', 'pt102'), inst('PT-102')];
     const result = analyzeSignalTopology(data);
