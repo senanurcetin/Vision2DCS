@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Instrument, SignalType, PCS7BlockType } from '../types';
+import { analyzeSignalTopology } from '../services/signalTopology';
 
 interface Props {
   instruments: Instrument[];
@@ -13,6 +14,8 @@ interface Props {
 const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete, onAdd }) => {
   const signalTypes: SignalType[] = ['AI', 'AO', 'DI', 'DO', 'Unknown'];
   const blockTypes: PCS7BlockType[] = ['MonAnL', 'MonDiL', 'MotL', 'VlvL', 'VlvAnL', 'PIDConL', 'Unknown'];
+  const linkErrors = analyzeSignalTopology(instruments).issues;
+  const targetSuggestions = instruments.map(i => i.tagName).filter(Boolean);
 
   const getConfidenceStyle = (conf: 'high' | 'medium' | 'low') => {
     switch (conf) {
@@ -32,13 +35,14 @@ const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete, onA
             <th className="px-5 py-4 border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider">Signal</th>
             <th className="px-5 py-4 border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider">Block</th>
             <th className="px-5 py-4 border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider">Units</th>
+            <th className="px-5 py-4 border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider">Signal to</th>
             <th className="px-5 py-4 border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-center">Manage</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/50">
           {instruments.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-5 py-24 text-center">
+              <td colSpan={7} className="px-5 py-24 text-center">
                 <div className="flex flex-col items-center gap-2 opacity-30">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                   <p className="font-bold text-sm">NO DATA DETECTED</p>
@@ -89,6 +93,24 @@ const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete, onA
                     onChange={(e) => onUpdate(inst.id, { engineeringUnits: e.target.value })}
                   />
                 </td>
+                <td className="min-w-32 px-5 py-3 align-top">
+                  <input
+                    list={'signal-targets-' + inst.id}
+                    aria-label={'Signal target for ' + inst.tagName}
+                    title="Optional directed signal link; editing revokes previous review"
+                    placeholder="No link"
+                    maxLength={64}
+                    value={inst.connectedTo ?? ''}
+                    onChange={e => onUpdate(inst.id, { connectedTo: e.target.value })}
+                    className="w-32 rounded-md border border-slate-700 bg-slate-950/50 px-2 py-1.5 font-mono text-[10px] text-cyan-100 placeholder:text-slate-600 focus:border-cyan-400"
+                  />
+                  <datalist id={'signal-targets-' + inst.id}>
+                    {targetSuggestions.filter(tag => tag !== inst.tagName).map(tag =>
+                      <option key={tag} value={tag} />)}
+                  </datalist>
+                  {linkErrors.filter(issue => issue.tag === inst.tagName).map((issue, index) =>
+                    <p role="status" key={index} className="mt-1 max-w-52 text-[10px] text-red-300">{issue.message}</p>)}
+                </td>
                 <td className="px-5 py-3 align-top text-center">
                   <button
                     type="button"
@@ -116,7 +138,7 @@ const InstrumentTable: React.FC<Props> = ({ instruments, onUpdate, onDelete, onA
         {onAdd && (
           <tfoot>
             <tr>
-              <td colSpan={6} className="px-5 py-3 border-t border-slate-800">
+              <td colSpan={7} className="px-5 py-3 border-t border-slate-800">
                 <button onClick={onAdd} className="flex items-center gap-2 text-[11px] font-bold text-blue-400 hover:text-blue-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                   Add instrument
