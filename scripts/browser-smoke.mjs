@@ -170,9 +170,10 @@ try {
   }
   const stressSeed = stress.getByLabel('Reproduction seed');
   await stressSeed.fill('43');
-  await page.waitForFunction(previous =>
-    document.querySelector('output[aria-label="Stressed image SHA-256"]')?.textContent !== previous,
-    originalStressHash);
+  await page.waitForFunction(previous => {
+    const digest = document.querySelector('output[aria-label="Stressed image SHA-256"]')?.textContent;
+    return Boolean(digest) && digest !== previous;
+  }, originalStressHash);
   await stressSeed.fill('42');
   await page.waitForFunction(original =>
     document.querySelector('output[aria-label="Stressed image SHA-256"]')?.textContent === original,
