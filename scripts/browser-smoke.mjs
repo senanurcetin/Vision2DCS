@@ -224,7 +224,9 @@ try {
   // two declared connections and independent project history.
   await page.getByRole('button', { name: 'Tank-level sample' }).click();
   const tankRows = page.locator('table tbody tr');
-  await tankRows.first().locator('input').first().waitFor({ state: 'visible' });
+  // A previous project is already visible when the async image read begins;
+  // do not count its rows before the new scenario has actually committed.
+  await page.getByLabel('Signal target for LT-201').waitFor({ state: 'visible' });
   if (await tankRows.count() !== 6 ||
       await tankRows.first().locator('input').first().inputValue() !== 'LT-201') {
     throw new Error('Tank-level scenario is not a separate six-tag engineering case.');
