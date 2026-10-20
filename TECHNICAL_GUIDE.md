@@ -94,3 +94,7 @@ Export builders live in `services/exportService.ts` and are covered by unit test
 
 ### ABB 800xA
 Generates a structured XML fragment where each instrument is assigned an `AspectObject` type based on its signal characteristics.
+
+## Node runtime baseline (toolchain upgrade phase 1)
+
+Use Node 24 LTS, minimum v24.15.0 and pinned v24.22.0 for reproducible GitHub Actions, CircleCI, browser smoke and local `.nvmrc`. `package.json` and root `package-lock.json` engine metadata agree. This stage does not upgrade Vite, Vitest, vite-node or jsdom and intentionally leaves all transitive lockfile entries unchanged. Advance those coordinated toolchain changes only in later tested PRs. Any runtime mismatch must fail the dependency/CI checks; never skip safety tests to merge.
