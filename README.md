@@ -4,6 +4,8 @@
 
 **Technical reviewer brief:** [System evidence, reproducibility and operational limits](docs/hiring-summary.md).
 
+**Research-demo acceptance:** [claim-to-evidence matrix, verified CI and explicit scientific limitations](docs/DEMO_EVIDENCE_MATRIX.md).
+
 **React · TypeScript · Gemini multimodal AI · React Flow · Structured instrumentation extraction**
 
 Vision2DCS is an industrial AI prototype that turns P&ID interpretation into a structured engineering workflow. It analyzes instrumentation diagrams, drafts tag mappings, and produces visual topology concepts for modern DCS and HMI projects.
