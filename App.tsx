@@ -3,6 +3,7 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import InstrumentTable from './components/InstrumentTable';
 import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
+import CauseEffectDemo from './components/CauseEffectDemo';
 import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin, setAiAccessToken } from './services/geminiService';
 import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText, downloadSignalLinksCSV } from './services/exportService';
@@ -19,7 +20,7 @@ import { createSyntheticDemoProject, type DemoScenario } from './services/offlin
 import { createLocalId } from './services/localIds';
 import { instrumentDeletionWarning } from './services/instrumentDeletion';
 
-type TabView = 'list' | 'hmi' | 'bom';
+type TabView = 'list' | 'bom' | 'training';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
 /** Public static Vercel build: never show token-based operations without API routes. */
@@ -459,9 +460,9 @@ const App: React.FC = () => {
                 </div>
               )}
               <div className="flex gap-6 border-b border-slate-800">
-                 {['list', 'bom'].map(tab => (
+                 {(['list', 'bom', 'training'] as const).map(tab => (
                    <button key={tab} onClick={() => setActiveTab(tab as TabView)} className={`pb-2 text-[11px] font-bold uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-blue-400' : 'text-slate-500'}`}>
-                      {tab === 'list' ? 'Tag Management' : 'Capex & BOM'}
+                      {tab === 'list' ? 'Tag Management' : tab === 'bom' ? 'Capex & BOM' : 'Training Lab'}
                       {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />}
                    </button>
                  ))}
@@ -479,7 +480,7 @@ const App: React.FC = () => {
                     </div>
                     <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
                   </>
-                ) : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
+                ) : activeTab === 'training' ? <CauseEffectDemo /> : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
               </div>
 
               {currentProject && (
