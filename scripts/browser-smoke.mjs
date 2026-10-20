@@ -96,6 +96,13 @@ try {
   await page.getByText('Inferred layout only').waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'P&ID View' }).click();
 
+  // Destructive row operations must not execute when consent is dismissed.
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.getByRole('button', { name: 'Delete FIC-101' }).click();
+  if (await sampleRows.count() !== 5) {
+    throw new Error('Dismissing instrument deletion consent lost engineering data.');
+  }
+
   // The five draft rows require individual local engineer-review actions.
   for (const tag of ['FT-101', 'FIC-101', 'FCV-101', 'PT-102', 'TT-103']) {
     await page.getByRole('button', { name: 'Mark ' + tag + ' reviewed' }).click();

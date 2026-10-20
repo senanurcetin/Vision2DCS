@@ -80,3 +80,11 @@ selected project selects the next available project instead of showing a blank
 workspace. The NEXUS readiness panel reports explicitly reviewed instrument
 coverage and critical versus advisory heuristic findings; green/eligible output
 **never** implies certified engineering or signed approval.
+
+## Destructive instrument actions
+
+An individual instrument cannot be deleted without browser-native confirmation.
+The confirmation reports incoming declared signal references by canonical tag
+identity and warns that dangling references will remain unresolved, while
+in-memory Undo stops being available on reload. Cancel leaves project data and
+undo history unchanged. No automatic cascade deletes other signal definitions.

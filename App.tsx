@@ -17,6 +17,7 @@ import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
 import { createSyntheticDemoProject } from './services/offlineDemo';
 import { createLocalId } from './services/localIds';
+import { instrumentDeletionWarning } from './services/instrumentDeletion';
 
 type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
@@ -145,9 +146,11 @@ const App: React.FC = () => {
   }, [currentProjectId, editInstruments]);
 
   const deleteInstrument = useCallback((id: string) => {
-    if (!currentProjectId) return;
+    if (!currentProjectId || !currentProject) return;
+    const warning = instrumentDeletionWarning(currentProject.instruments, id);
+    if (!warning || !window.confirm(warning)) return;
     editInstruments(currentProjectId, instruments => instruments.filter(inst => inst.id !== id));
-  }, [currentProjectId, editInstruments]);
+  }, [currentProjectId, currentProject, editInstruments]);
 
   const addInstrument = useCallback(() => {
     if (!currentProjectId) return;

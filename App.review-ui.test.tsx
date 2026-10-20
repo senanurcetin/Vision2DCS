@@ -142,6 +142,24 @@ describe('instrument review/export DOM acceptance', () => {
     expect(harness.csv).not.toHaveBeenCalled();
     expect(harness.abb).not.toHaveBeenCalled();
   });
+  it('requires explicit confirmation before deleting an instrument or its linked target', async () => {
+    harness.project = fixture([instrument]);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    try {
+      await act(async () => root.render(<App />));
+      const deleteBtn = review('Delete PT-101');
+      await act(async () => deleteBtn.click());
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(confirm.mock.calls[0][0]).toContain('Export a project backup');
+      expect(host.querySelectorAll('table tbody tr')).toHaveLength(1);
+      confirm.mockReturnValue(true);
+      await act(async () => deleteBtn.click());
+      expect(host.textContent).toContain('NO DATA DETECTED');
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
   it('excludes collapsed history controls from focus and exposes an accessible toggle', async () => {
     harness.project = fixture([instrument]);
     await act(async () => root.render(<App />));
