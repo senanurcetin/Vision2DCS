@@ -22,6 +22,7 @@ describe('getLoopRole', () => {
   it('classifies measurements, controllers and final elements', () => {
     expect(getLoopRole(inst('FT-101'))).toBe('sensor');
     expect(getLoopRole(inst('FIC-101', { pcs7BlockType: 'PIDConL' }))).toBe('controller');
+    expect(getLoopRole(inst('FIC-101', { pcs7BlockType: 'PIDConL', signalType: 'AO' }))).toBe('controller');
     expect(getLoopRole(inst('TC-5', { pcs7BlockType: 'Unknown' }))).toBe('controller');
     expect(getLoopRole(inst('FCV-101', { signalType: 'AO', pcs7BlockType: 'VlvAnL' }))).toBe('actuator');
     expect(getLoopRole(inst('P-100', { signalType: 'DO', pcs7BlockType: 'MotL' }))).toBe('actuator');

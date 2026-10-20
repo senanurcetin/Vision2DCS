@@ -7,13 +7,15 @@ const ROLE_ORDER: Record<LoopRole, number> = { sensor: 0, controller: 1, actuato
 
 /** Position in a control loop: measurement, then control, then final element. */
 export const getLoopRole = (inst: Instrument): LoopRole => {
+  // A PID controller can carry an AO signal while still being a controller.
+  // Determine controller function before treating AO as a final element.
+  const letters = parseTag(inst.tagName)?.functionLetters ?? '';
+  if (inst.pcs7BlockType === 'PIDConL' || letters.slice(1).includes('C') && !isValveTag(inst.tagName))
+    return 'controller';
   if (isValveTag(inst.tagName) || inst.signalType === 'AO' || inst.signalType === 'DO'
     || ['VlvL', 'VlvAnL', 'MotL'].includes(inst.pcs7BlockType)) {
     return 'actuator';
   }
-  // ISA controller letters: C after the measured variable (FIC, PC, TIC...)
-  const letters = parseTag(inst.tagName)?.functionLetters ?? '';
-  if (inst.pcs7BlockType === 'PIDConL' || letters.slice(1).includes('C')) return 'controller';
   return 'sensor';
 };
 
