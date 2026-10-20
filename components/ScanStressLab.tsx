@@ -48,12 +48,14 @@ const ScanStressLab: React.FC<Props> = ({ imageUrl }) => {
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(image, 0, 0, width, height);
         const rgba = ctx.getImageData(0, 0, width, height);
-        const before = await crypto.subtle.digest('SHA-256', rgba.data);
+        const before = await crypto.subtle.digest('SHA-256', new Uint8Array(rgba.data));
         const altered = stressScanPixels(rgba.data, width, height,
           { seed, specklePercent: percent, mode });
-        const after = await crypto.subtle.digest('SHA-256', altered);
+        const after = await crypto.subtle.digest('SHA-256', new Uint8Array(altered));
         if (cancelled) return;
-        ctx.putImageData(new ImageData(altered, width, height), 0, 0);
+        const degradedImage = ctx.createImageData(width, height);
+        degradedImage.data.set(altered);
+        ctx.putImageData(degradedImage, 0, 0);
         setEvidence({ source: hex(before), stressed: hex(after), size: width + ' × ' + height + ' pixels' });
       } catch {
         if (!cancelled) setError('Could not locally decode or transform this source drawing.');
