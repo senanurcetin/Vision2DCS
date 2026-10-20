@@ -102,3 +102,7 @@ Use Node 24 LTS, minimum v24.15.0 and pinned v24.22.0 for reproducible GitHub Ac
 ## Research evidence and reproducibility
 
 The ten-drawing synthetic corpus now has source SVGs, validated PNGs and hand-authored gold reference labels. `npm run eval:inspect` produces an **unscored** SHA-256 inventory. Preflight rejects missing signal/block labels; missing ground truth never receives credit as a correct prediction. The eight new procedural cases share a drawing style. Passing CI demonstrates software correctness, not real Gemini accuracy or independent engineering certification. See [research evidence](docs/RESEARCH_EVIDENCE.md).
+
+### Additional classification advisory
+
+OT-Sentinel now compares assigned AI/AO/DI/DO signal class against a small **illustrative** MonAnL/MonDiL/MotL/VlvL/VlvAnL/PIDConL block mapping table. Inconsistent classifications raise advisory warnings and are never auto-corrected. These mappings are conceptual shorthand and must not be treated as a verified Siemens PCS7 import schema or a plant safety assessment. Existing human review and critical topology blockers remain authoritative for concept exports.

@@ -1,6 +1,7 @@
 import { Instrument, SentinelAlert } from '../types';
 import { canonicalizeTag, getLoopKey, isValidIsaTag, isValveTag } from './tagParser';
 import { analyzeSignalTopology } from './signalTopology';
+import { inspectSignalBlockMappings } from './signalBlockAdvisory';
 
 const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'esdv', 'interlock'];
 
@@ -89,6 +90,9 @@ export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => 
       });
     }
   });
+
+  // Advisory conceptual signal/block compatibility, without auto-correction.
+  alerts.push(...inspectSignalBlockMappings(instruments));
 
   // Explicit directed signal references must resolve without ambiguity.
   // The implicit HMI loop chain remains a visualization heuristic only.

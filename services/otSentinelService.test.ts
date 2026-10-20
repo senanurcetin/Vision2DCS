@@ -76,6 +76,16 @@ describe('runSentinelAudit', () => {
     expect(messagesFor([inst({ tagName: 'XS-10', signalType: 'DI', pcs7BlockType: 'MonDiL', engineeringUnits: '' })], 'XS-10')).toEqual([]);
   });
 
+  it('shows unverified block/signal mismatches without blocking as certified errors', () => {
+    const mismatched = [inst({ tagName: 'PT-101', signalType: 'DO', pcs7BlockType: 'MonAnL' })];
+    const alerts = runSentinelAudit(mismatched);
+    expect(alerts).toEqual([expect.objectContaining({
+      tag: 'PT-101',
+      severity: 'warning',
+      message: expect.stringContaining('Conceptual I/O mismatch'),
+    })]);
+  });
+
   it('flags safety-related descriptions', () => {
     expect(messagesFor([inst({ description: 'Emergency shutdown pressure' })], 'PT-101')[0]).toMatch(/IEC 61511/);
   });
