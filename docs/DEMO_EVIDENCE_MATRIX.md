@@ -47,7 +47,7 @@ This document separates **implemented software**, **tested behavior**, **measure
 | OCR versus paid-model pairing | **IMPLEMENTED, NOT YET EXECUTED AGAINST LIVE GEMINI** | `eval/compareTags.ts` and tests, `eval:compare-tags` | Requires matching exact drawing and expected-label SHA-256; compares only tag precision/recall/F1 |
 | Independently authored engineering P&IDs | **NOT ESTABLISHED** | `docs/RESEARCH_EVIDENCE.md` | Requires permissible external P&IDs from diverse engineers/tools |
 | Blinded secondary annotation and agreement | **NOT ESTABLISHED** | No second independent human-labelled reference set | Cannot claim agreement or adjudication without actual secondary annotators |
-| Seed-controlled scan noise, hard negatives and occlusions | **NOT YET IMPLEMENTED** | Tracking issue #88 | Robustness cannot be inferred from the current clean-image fixture corpus |
+| Seed-controlled visual scan speckle / occlusions | **IMPLEMENTED AS UNSCORED PREVIEW; browser tested** | `services/scanStress.ts`, `components/ScanStressLab.tsx`, tests | Pixel-hashed deterministic preview only; no OCR/Gemini robustness accuracy or independent hard-negative experiments yet |
 | Multi-target instrument signal graph | **NOT YET IMPLEMENTED** | Current `Instrument.connectedTo?: string` | A backward-compatible versioned graph and backup migration would require separate test and review |
 | Certified vendor import, verified SIL/OT deployment | **EXCLUDED FROM DEMO ACCEPTANCE** | [Issue #2](https://github.com/senanurcetin/Vision2DCS/issues/2) documents external validation need | Do not call experimental CSV/XML files import-ready or safety-certified |
 

@@ -158,3 +158,19 @@ measured tag scores are cited; a passing parser unit test alone is not OCR
 quality evidence. Mixed v1 OCR and v2 Gemini reports may be paired only via
 `npm run eval:compare-tags -- <baseline> <candidate>` on exact source hashes,
 and only their tag detection precision/recall/F1 may be interpreted.
+
+## Seeded local P&ID scan perturbations
+
+The **Scan Stress** tab applies deterministic monochrome speckle and two
+seeded rectangular occlusions only to a locally embedded PNG/JPEG/WebP
+project image. The RGBA operation is pure, size-limited and never changes the
+stored source project. Each preview displays **rendered pixel SHA-256 hashes**
+(before/after) distinct from original PNG **file** hashes. Changing the seed
+changes the transformed RGBA digest; restoring the seed, strength and mode
+restores identical pixels and hash in the same rendering environment. The
+standalone downloadable PNG contains degraded *synthetic visual output* only.
+
+Acceptance: browser smoke verifies reproducibility, the changed-seed hash,
+local PNG download, no model/OT requests and responsive tabs. This screen
+contains no evaluated OCR/model predictions, training data injection,
+certification, hard-negative benchmark or measured robustness improvement.

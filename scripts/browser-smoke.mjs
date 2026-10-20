@@ -159,6 +159,32 @@ try {
   if (await research.getByText('browser-smoke-unverified').count()) {
     throw new Error('A forged report left stale accepted evidence visible.');
   }
+  await page.getByRole('button', { name: 'Scan Stress' }).click();
+  const stress = page.getByRole('region', { name: 'Offline scan robustness lab' });
+  await stress.waitFor({ state: 'visible' });
+  const stressHash = stress.getByLabel('Stressed image SHA-256');
+  await stressHash.waitFor({ state: 'visible' });
+  const originalStressHash = await stressHash.textContent();
+  if (!/^[a-f0-9]{64}$/.test(originalStressHash ?? '')) {
+    throw new Error('The offline stress lab did not compute its RGBA SHA-256.');
+  }
+  const stressSeed = stress.getByLabel('Reproduction seed');
+  await stressSeed.fill('43');
+  await page.waitForFunction(previous => {
+    const digest = document.querySelector('output[aria-label="Stressed image SHA-256"]')?.textContent;
+    return Boolean(digest) && digest !== previous;
+  }, originalStressHash);
+  await stressSeed.fill('42');
+  await page.waitForFunction(original =>
+    document.querySelector('output[aria-label="Stressed image SHA-256"]')?.textContent === original,
+    originalStressHash);
+  const stressPromise = page.waitForEvent('download');
+  await stress.getByRole('button', { name: 'Download synthetic degraded PNG' }).click();
+  const stressDownload = await stressPromise;
+  if (stressDownload.suggestedFilename() !== 'vision2dcs-stress-seed-42.png' ||
+      (await readFile(await stressDownload.path())).length < 100) {
+    throw new Error('The reproducible scan-stress download was not generated.');
+  }
   await page.getByRole('button', { name: 'Tag Management' }).click();
 
   // Destructive row operations must not execute when consent is dismissed.

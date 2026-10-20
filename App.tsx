@@ -5,6 +5,7 @@ import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
 import CauseEffectDemo from './components/CauseEffectDemo';
 import BenchmarkEvidenceViewer from './components/BenchmarkEvidenceViewer';
+import ScanStressLab from './components/ScanStressLab';
 import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin, setAiAccessToken } from './services/geminiService';
 import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText, downloadSignalLinksCSV } from './services/exportService';
@@ -21,7 +22,7 @@ import { createSyntheticDemoProject, type DemoScenario } from './services/offlin
 import { createLocalId } from './services/localIds';
 import { instrumentDeletionWarning } from './services/instrumentDeletion';
 
-type TabView = 'list' | 'bom' | 'training' | 'research';
+type TabView = 'list' | 'bom' | 'training' | 'research' | 'stress';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
 /** Public static Vercel build: never show token-based operations without API routes. */
@@ -460,10 +461,10 @@ const App: React.FC = () => {
                   Concept exports disabled: {exportBlockers[0]} Resolve critical tag and classification errors before download.
                 </div>
               )}
-              <div className="flex gap-6 border-b border-slate-800">
-                 {(['list', 'bom', 'training', 'research'] as const).map(tab => (
+              <div className="flex flex-wrap gap-x-5 gap-y-2 border-b border-slate-800">
+                 {(['list', 'bom', 'training', 'research', 'stress'] as const).map(tab => (
                    <button key={tab} onClick={() => setActiveTab(tab as TabView)} className={`pb-2 text-[11px] font-bold uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-blue-400' : 'text-slate-500'}`}>
-                      {tab === 'list' ? 'Tag Management' : tab === 'bom' ? 'Capex & BOM' : tab === 'training' ? 'Training Lab' : 'Research Evidence'}
+                      {tab === 'list' ? 'Tag Management' : tab === 'bom' ? 'Capex & BOM' : tab === 'training' ? 'Training Lab' : tab === 'research' ? 'Research Evidence' : 'Scan Stress'}
                       {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />}
                    </button>
                  ))}
@@ -481,7 +482,7 @@ const App: React.FC = () => {
                     </div>
                     <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
                   </>
-                ) : activeTab === 'training' ? <CauseEffectDemo /> : activeTab === 'research' ? <BenchmarkEvidenceViewer /> : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
+                ) : activeTab === 'training' ? <CauseEffectDemo /> : activeTab === 'research' ? <BenchmarkEvidenceViewer /> : activeTab === 'stress' ? <ScanStressLab imageUrl={currentProject?.imageUrl} /> : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
               </div>
 
               {currentProject && (
