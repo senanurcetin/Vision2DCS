@@ -120,6 +120,45 @@ try {
   await training.getByText('UNKNOWN', { exact: true }).waitFor({ state: 'visible' });
   await training.getByRole('button', { name: 'Reactor feed flow' }).click();
   await training.getByRole('slider', { name: /FT-101/ }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Research Evidence' }).click();
+  const research = page.getByRole('region', { name: 'Offline research evidence viewer' });
+  await research.waitFor({ state: 'visible' });
+  await research.getByText('No measured evaluation report loaded', { exact: false }).waitFor();
+  // A deterministic browser-TEST-only record (not bundled as purported Gemini
+  // evidence). Its validated counts exercise the real local JSON reader.
+  const testReport = {
+    schemaVersion: 1, model: 'browser-smoke-unverified',
+    generatedAt: '2026-10-21T00:00:00.000Z',
+    sampleCount: 1, scoring: 'canonical-tag-microaverage',
+    samples: [{
+      name: 'test-only-drawing', drawingSha256: 'a'.repeat(64),
+      expectedSha256: 'b'.repeat(64),
+      score: { expected: 1, extracted: 1, matched: 1, missed: [],
+        unexpected: [], signalCorrect: 1, blockCorrect: 1 },
+    }],
+    summary: { precision: 1, recall: 1, f1: 1, signalAccuracy: 1, blockAccuracy: 1 },
+  };
+  const evidenceInput = research.getByLabel('Select a local source-hashed report');
+  await evidenceInput.setInputFiles({
+    name: 'test-only-report.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(testReport)),
+  });
+  await research.getByText('browser-smoke-unverified').waitFor({ state: 'visible' });
+  await research.getByText('test-only-drawing').first().waitFor({ state: 'visible' });
+  if (!((await research.getByText('Lowest observed tag F1:', { exact: false }).textContent())
+    .includes('test-only-drawing'))) {
+    throw new Error('Offline research viewer did not identify the actual scored drawing.');
+  }
+  await evidenceInput.setInputFiles({
+    name: 'tampered-report.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({
+      ...testReport, summary: { ...testReport.summary, f1: 0.5 },
+    })),
+  });
+  await research.getByRole('alert').waitFor({ state: 'visible' });
+  if (await research.getByText('browser-smoke-unverified').count()) {
+    throw new Error('A forged report left stale accepted evidence visible.');
+  }
   await page.getByRole('button', { name: 'Tag Management' }).click();
 
   // Destructive row operations must not execute when consent is dismissed.

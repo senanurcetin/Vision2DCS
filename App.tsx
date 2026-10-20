@@ -4,6 +4,7 @@ import InstrumentTable from './components/InstrumentTable';
 import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
 import CauseEffectDemo from './components/CauseEffectDemo';
+import BenchmarkEvidenceViewer from './components/BenchmarkEvidenceViewer';
 import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin, setAiAccessToken } from './services/geminiService';
 import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText, downloadSignalLinksCSV } from './services/exportService';
@@ -20,7 +21,7 @@ import { createSyntheticDemoProject, type DemoScenario } from './services/offlin
 import { createLocalId } from './services/localIds';
 import { instrumentDeletionWarning } from './services/instrumentDeletion';
 
-type TabView = 'list' | 'bom' | 'training';
+type TabView = 'list' | 'bom' | 'training' | 'research';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
 
 /** Public static Vercel build: never show token-based operations without API routes. */
@@ -460,9 +461,9 @@ const App: React.FC = () => {
                 </div>
               )}
               <div className="flex gap-6 border-b border-slate-800">
-                 {(['list', 'bom', 'training'] as const).map(tab => (
+                 {(['list', 'bom', 'training', 'research'] as const).map(tab => (
                    <button key={tab} onClick={() => setActiveTab(tab as TabView)} className={`pb-2 text-[11px] font-bold uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-blue-400' : 'text-slate-500'}`}>
-                      {tab === 'list' ? 'Tag Management' : tab === 'bom' ? 'Capex & BOM' : 'Training Lab'}
+                      {tab === 'list' ? 'Tag Management' : tab === 'bom' ? 'Capex & BOM' : tab === 'training' ? 'Training Lab' : 'Research Evidence'}
                       {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />}
                    </button>
                  ))}
@@ -480,7 +481,7 @@ const App: React.FC = () => {
                     </div>
                     <InstrumentTable instruments={currentProject?.instruments || []} onUpdate={updateInstrument} onDelete={deleteInstrument} onAdd={currentProject ? addInstrument : undefined} />
                   </>
-                ) : activeTab === 'training' ? <CauseEffectDemo /> : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
+                ) : activeTab === 'training' ? <CauseEffectDemo /> : activeTab === 'research' ? <BenchmarkEvidenceViewer /> : <AuditBOM instruments={currentProject?.instruments || []} onExport={currentProject ? () => downloadBomCSV(currentProject.instruments, currentProject.name) : undefined} />}
               </div>
 
               {currentProject && (

@@ -98,3 +98,15 @@ The event history is bounded and ephemeral. This illustrates how to review a
 simple alarm sequence; it is neither process dynamics nor a functional-safety
 or cause/effect matrix verification. No plant commands, actuator control,
 networked I/O, AI inference or paid model access are involved.
+
+## Local NEXUS research evidence visualization
+
+The **Research Evidence** tab can render a separately saved, source-hashed v1/v2
+benchmark report without triggering any model inference. The same validator as
+`npm run eval:diagnose` rejects inconsistent samples or summaries. The browser
+calculates per-drawing F1 and macro means and exposes denominator coverage and
+source SHA-256 identities; empty denominators remain N/A. It keeps an imported
+JSON record in React memory only. Uploaded report provenance is not
+independently authenticated. Do not present test-only or procedural fixture
+records as Gemini performance. Without a real, user-supplied evaluation report,
+the interface displays **no measured extraction results**.
