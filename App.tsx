@@ -461,7 +461,7 @@ const App: React.FC = () => {
                   Concept exports disabled: {exportBlockers[0]} Resolve critical tag and classification errors before download.
                 </div>
               )}
-              <div className="flex gap-6 border-b border-slate-800">
+              <div className="flex flex-wrap gap-x-5 gap-y-2 border-b border-slate-800">
                  {(['list', 'bom', 'training', 'research', 'stress'] as const).map(tab => (
                    <button key={tab} onClick={() => setActiveTab(tab as TabView)} className={`pb-2 text-[11px] font-bold uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-blue-400' : 'text-slate-500'}`}>
                       {tab === 'list' ? 'Tag Management' : tab === 'bom' ? 'Capex & BOM' : tab === 'training' ? 'Training Lab' : tab === 'research' ? 'Research Evidence' : 'Scan Stress'}
