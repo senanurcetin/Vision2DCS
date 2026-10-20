@@ -31,6 +31,12 @@ jobs:
           name: Unit tests
           command: npm test
       - run:
+          name: Verify reference fixtures and PNG integrity (no AI)
+          command: npm run eval:preflight
+      - run:
+          name: Inspect unscored fixture coverage (no AI)
+          command: npm run eval:inspect
+      - run:
           name: Client and SSR production builds
           command: npm run build
 

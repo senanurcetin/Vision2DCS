@@ -32,5 +32,11 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Verify all P&ID reference sources and image CRCs
+        run: npm run eval:preflight
+
+      - name: Inspect unscored scientific corpus coverage
+        run: npm run eval:inspect
+
       - name: Build application
         run: npm run build
