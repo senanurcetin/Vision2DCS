@@ -150,3 +150,7 @@ MIT
 The `services/engineeringAcceptance.test.ts` suite exercises the **complete pure-data path** that supports the UI: an AI-created row starts unreviewed; an explicit local Review click can unlock conceptual export; creating a backup and importing it into a new project clears any asserted approval; changing a reviewed instrument invalidates that approval; and canonical duplicates prevent export. It also tests 12 MiB of valid inline image data and rejects malformed, remote and SVG image payloads. The backup image validator uses the shared linear-time canonical base64 scanner, avoiding a large regex on untrusted backups.
 
 Run `npm test` for these offline checks. This is **not** a claim of real-browser keyboard/screenshot QA, paid Gemini accuracy, authenticated engineer sign-off, Siemens/ABB vendor import acceptance or actual plant control. Those remain separate release gates.
+
+### Browser session continuity and download verification
+
+Valid local projects reopen after a browser refresh, restoring the last selected valid project (or the newest available one when the prior selection was deleted). Only the selected project ID is saved as UI state; operator AI tokens and in-memory undo/redo history are **never** persisted by this feature. CI's Chromium smoke tests verify real downloaded read-only NEXUS Tag Map v1 JSON, Siemens-style conceptual CSV, and ABB-style conceptual XML bytes, then reload the edited project to confirm review gate and undo history remain safe. These outputs are not vendor-certified engineering imports.

@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { AnalysisProject } from '../types';
-import { loadProjects, saveProjects, STORAGE_KEY } from './projectStore';
+import {
+  loadProjects, restoreSelectedProjectId, saveProjects, saveSelectedProjectId,
+  SELECTED_PROJECT_KEY, STORAGE_KEY,
+} from './projectStore';
 
 const project = (id: string): AnalysisProject => ({ id, name: id, date: 'today', imageUrl: '', instruments: [] });
 
@@ -104,5 +107,37 @@ describe('saveProjects', () => {
     expect(saveProjects(undefined, [])).toEqual({ ok: false, reason: 'unavailable' });
     const broken = { getItem: () => null, setItem: () => { throw new Error('SecurityError'); } };
     expect(saveProjects(broken, [])).toEqual({ ok: false, reason: 'unavailable' });
+  });
+});
+
+
+describe('selected local project continuity', () => {
+  it('restores the last selected valid project after a browser refresh', () => {
+    const storage = memoryStorage(JSON.stringify([project('latest'), project('older')]));
+    saveSelectedProjectId(storage, 'older');
+    expect(storage.getItem(SELECTED_PROJECT_KEY)).toBe('older');
+    expect(restoreSelectedProjectId(storage, loadProjects(storage))).toBe('older');
+  });
+
+  it('falls back safely for absent, stale or unreadable selection preferences', () => {
+    const list = [project('latest'), project('older')];
+    const storage = memoryStorage();
+    expect(restoreSelectedProjectId(storage, list)).toBe('latest');
+    saveSelectedProjectId(storage, 'deleted');
+    expect(restoreSelectedProjectId(storage, list)).toBe('latest');
+    expect(restoreSelectedProjectId(undefined, list)).toBe('latest');
+    expect(restoreSelectedProjectId(storage, [])).toBeNull();
+    expect(restoreSelectedProjectId({ getItem: () => { throw new Error('blocked'); } }, list)).toBe('latest');
+  });
+
+  it('never modifies engineering records on selection-storage failure', () => {
+    const storage = memoryStorage(JSON.stringify([project('safe')]));
+    const before = storage.getItem(STORAGE_KEY);
+    saveSelectedProjectId({ setItem: () => { throw new Error('blocked'); } }, 'safe');
+    saveSelectedProjectId(undefined, null);
+    expect(storage.getItem(STORAGE_KEY)).toBe(before);
+    saveSelectedProjectId(storage, null);
+    expect(storage.getItem(SELECTED_PROJECT_KEY)).toBe('');
+    expect(restoreSelectedProjectId(storage, [project('safe')])).toBe('safe');
   });
 });

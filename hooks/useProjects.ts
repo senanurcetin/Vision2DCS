@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { AnalysisProject, Instrument } from '../types';
-import { getBrowserStorage, loadProjects, saveProjects } from '../services/projectStore';
+import {
+  getBrowserStorage, loadProjects, restoreSelectedProjectId,
+  saveProjects, saveSelectedProjectId,
+} from '../services/projectStore';
 import {
   type InstrumentHistory, emptyInstrumentHistory, recordInstrumentEdit,
   undoInstrumentEdit, redoInstrumentEdit,
@@ -88,11 +91,14 @@ export const projectReducer = (state: ProjectState, action: ProjectAction): Proj
  */
 export const useProjects = () => {
   const storage = useMemo(getBrowserStorage, []);
-  const [state, dispatch] = useReducer(projectReducer, storage, browserStorage => ({
-    projects: loadProjects(browserStorage),
-    currentId: null,
-    histories: {},
-  }));
+  const [state, dispatch] = useReducer(projectReducer, storage, (browserStorage): ProjectState => {
+    const projects = loadProjects(browserStorage);
+    return {
+      projects,
+      currentId: restoreSelectedProjectId(browserStorage, projects),
+      histories: {},
+    };
+  });
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
 
@@ -104,6 +110,11 @@ export const useProjects = () => {
     const result = saveProjects(storage, state.projects);
     setStorageWarning('reason' in result ? STORAGE_MESSAGES[result.reason] : null);
   }, [storage, state.projects]);
+
+  // Store only the selected local project ID, not undo stacks or AI tokens.
+  useEffect(() => {
+    saveSelectedProjectId(storage, state.currentId);
+  }, [storage, state.currentId]);
 
   const addProject = useCallback((project: AnalysisProject) => dispatch({ type: 'add', project }), []);
   const updateProject = useCallback((id: string, update: (project: AnalysisProject) => AnalysisProject) =>
