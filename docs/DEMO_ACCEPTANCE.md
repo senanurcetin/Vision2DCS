@@ -1,5 +1,7 @@
 # NEXUS Vision2DCS — Offline Demo Acceptance
 
+For claim-level evidence and current scientific limits, see [DEMO_EVIDENCE_MATRIX.md](DEMO_EVIDENCE_MATRIX.md).
+
 Scope: a **local, read-only engineering concept demo**, not certified industrial
 control software or a vendor-ready PCS 7 / ABB import. No live PLC, plant network,
 automatic GitHub deployment, model API payment or operator secrets are needed.
