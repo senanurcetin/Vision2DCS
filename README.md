@@ -68,6 +68,10 @@ Set `GEMINI_API_KEY` in `.env.local`. **Billable AI is disabled by default** eve
 | `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` | Model for the digital-twin render |
 | `PORT` | `3000` | Port for `npm start` |
 
+### Supported Node.js runtime
+
+Use **Node 24 LTS**, at least **24.15.0** (tested and pinned to **24.22.0** in `.nvmrc`, GitHub Actions, CircleCI and Chromium smoke). Run `nvm use` before `npm ci`. Node 20 is no longer an accepted app runtime; the pinned runtime is required for future test/toolchain upgrades. The root lockfile engine metadata is synchronized; no transitive dependencies are changed in this runtime-only migration.
+
 ### Run
 
 ```bash
