@@ -146,3 +146,16 @@ zero placeholder classification counts in the v1 report must not be presented
 as a measured skill. Do not use the broader `eval:compare` for mixed versions.
 The corpus is still mostly procedurally related and no generalization claim
 follows from these synthetic results.
+
+## Seeded scan-noise and occlusion preview — not a scored benchmark
+
+The local NEXUS Scan Stress lab illustrates image information loss using a
+seeded RGBA grayscale-speckle transform and bounded paper-mask occlusions.
+The pure deterministic implementation is unit-tested; the browser verifies
+pixel SHA-256 equality after repeating one seed and inequality with another.
+The input project is not edited and the output can be downloaded as a PNG.
+File hash and raster-pixel hash are deliberately distinguished. These previews
+are **unscored**, are not run through OCR/Gemini as part of CI, and do not
+constitute hard-negative generalization tests. To claim OCR robustness, a
+future evaluation must run real OCR over source-hashed perturbation variants,
+label the variants and analyze paired per-drawing changes.
