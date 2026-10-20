@@ -25,6 +25,7 @@ describe('applyInstrumentUpdate', () => {
       { signalType: 'DI' as const },
       { pcs7BlockType: 'MonDiL' as const },
       { engineeringUnits: 'kPa' },
+      { connectedTo: 'PT-102' },
     ]) {
       expect(applyInstrumentUpdate(reviewed, update).reviewed).toBe(false);
     }

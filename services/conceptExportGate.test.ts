@@ -40,6 +40,20 @@ describe('conceptExportBlockers', () => {
     expect(reasons).toEqual([]);
   });
 
+  it('blocks malformed or cyclic explicit signal references even for reviewed rows', () => {
+    expect(conceptExportBlockers([
+      inst({ tagName: 'FT-101', connectedTo: 'NOT-999' }),
+    ]).join(' ')).toMatch(/does not exist/);
+    expect(conceptExportBlockers([
+      inst({ id: 'ft', tagName: 'FT-101', connectedTo: 'FIC-101' }),
+      inst({ id: 'fic', tagName: 'FIC-101', connectedTo: 'FT-101' }),
+    ]).join(' ')).toMatch(/Directed signal cycle/);
+    expect(conceptExportBlockers([
+      inst({ id: 'ft', tagName: 'FT-101', connectedTo: 'FIC-101' }),
+      inst({ id: 'fic', tagName: 'FIC-101', connectedTo: undefined }),
+    ])).toEqual([]);
+  });
+
   it('does not accept model confidence or untrusted review flags as engineering approval', () => {
     const unreviewed = inst({ reviewed: false, confidence: 'high' });
     expect(conceptExportBlockers([unreviewed]).join(' ')).toMatch(/Explicit human review/);

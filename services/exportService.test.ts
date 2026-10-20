@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { Instrument } from '../types';
-import { buildAbbXml, buildSiemensCsv, buildBomCsv, escapeCsvField, escapeXml } from './exportService';
+import { buildAbbXml, buildSiemensCsv, buildBomCsv, buildSignalLinksCsv, escapeCsvField, escapeXml } from './exportService';
 
 const inst = (overrides: Partial<Instrument>): Instrument => ({
   id: 'id',
@@ -170,5 +170,28 @@ describe('buildAbbXml', () => {
 
   it('is well-formed for an empty instrument list', () => {
     expect(parse(buildAbbXml([])).getElementsByTagName('parsererror')).toHaveLength(0);
+  });
+});
+
+
+describe('reviewed signal-link conceptual CSV', () => {
+  it('exports only declared directed links, never inferred loop chains', () => {
+    const rows = [
+      inst({ id: 'a', tagName: 'FT-101', connectedTo: 'FIC-101', reviewed: true, signalType: 'AI' }),
+      inst({ id: 'b', tagName: 'FIC-101', connectedTo: 'FCV-101', reviewed: true, signalType: 'AO', pcs7BlockType: 'PIDConL' }),
+      inst({ id: 'c', tagName: 'FCV-101', reviewed: true, signalType: 'AO', pcs7BlockType: 'VlvAnL' }),
+      inst({ id: 'd', tagName: 'PT-102', reviewed: true }),
+    ];
+    const csv = buildSignalLinksCsv(rows);
+    expect(csv).toContain('Source Tag;Target Tag;Source Signal;Target Signal;Evidence');
+    expect(csv).toContain('FT-101;FIC-101;AI;AO;');
+    expect(csv).toContain('FIC-101;FCV-101;AO;AO;');
+    expect(csv).not.toContain('PT-102;');
+  });
+  it('rejects links from unreviewed or dangling instruments', () => {
+    expect(() => buildSignalLinksCsv([inst({ tagName: 'PT-101', connectedTo: 'TT-102' })]))
+      .toThrow('blocked');
+    expect(() => buildSignalLinksCsv([inst({ tagName: 'PT-101', connectedTo: 'TT-102', reviewed: true })]))
+      .toThrow('does not exist');
   });
 });

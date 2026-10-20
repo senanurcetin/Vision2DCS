@@ -77,9 +77,36 @@ try {
     throw new Error('Selected synthetic project disappeared after refresh.');
   }
   await page.getByText('Synthetic sample · five draft tags', { exact: false }).waitFor();
-  // Check that the example stays editable and its HMI topology is accessible.
+  // Inspect and edit a declared directed link without ever calling an AI API.
+  const flowTarget = page.getByLabel('Signal target for FT-101');
+  if (await flowTarget.inputValue() !== 'FIC-101') throw new Error('Synthetic signal graph is missing FT->FIC.');
+  await flowTarget.fill('ZZ-999');
+  await page.getByText('Directed signal target ZZ-999 does not exist', { exact: false }).first()
+    .waitFor({ state: 'visible' });
+  await flowTarget.fill('FIC-101');
+  const linkCsv = page.getByRole('button', { name: 'SIGNAL LINKS CSV' });
+  if (await linkCsv.isEnabled()) throw new Error('Link edit must revoke review.');
   await page.getByRole('button', { name: 'HMI Topology' }).click();
+  await page.getByText('Declared directed link').waitFor({ state: 'visible' });
+  await page.getByText('Inferred layout only').waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'P&ID View' }).click();
+
+  // The five draft rows require individual local engineer-review actions.
+  for (const tag of ['FT-101', 'FIC-101', 'FCV-101', 'PT-102', 'TT-103']) {
+    await page.getByRole('button', { name: 'Mark ' + tag + ' reviewed' }).click();
+  }
+  if (!(await linkCsv.isEnabled())) throw new Error('Review should enable declared link export.');
+  const linksPromise = page.waitForEvent('download');
+  await linkCsv.click();
+  const linksDownload = await linksPromise;
+  if (!linksDownload.suggestedFilename().endsWith('_Signal_Links.csv')) {
+    throw new Error('Directed link CSV has an unexpected filename.');
+  }
+  const linksText = await readFile(await linksDownload.path(), 'utf8');
+  if (!linksText.includes('FT-101;FIC-101') || !linksText.includes('FIC-101;FCV-101') ||
+      linksText.includes('PT-102;') || !linksText.includes('not certified')) {
+    throw new Error('Signal CSV contains an invented inferred edge or omits a declared edge.');
+  }
 
   const backupInput = page.locator('input[accept="application/json,.json"]');
   await backupInput.setInputFiles({
@@ -180,7 +207,7 @@ try {
     await page.screenshot({ path: output + '/nexus-' + width + '.png', animations: 'disabled' });
   }
   if (apiRequests.length) throw new Error('Offline browser smoke unexpectedly called paid AI API routes.');
-  console.log('Chromium smoke PASS: project continuity, actual NEXUS JSON / Siemens CSV / ABB XML downloads, review gate, edit/undo/redo, invalid import and 375/768/1440 viewports.');
+  console.log('Chromium smoke PASS: edited directed signal graph and CSV, project continuity, NEXUS JSON / Siemens CSV / ABB XML downloads, review gate and 375/768/1440 viewports.');
 } finally {
   await browser.close();
 }

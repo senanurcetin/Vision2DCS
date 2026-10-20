@@ -12,6 +12,7 @@ import {
 
 import { Instrument } from '../types';
 import { buildConnections, groupLoops } from '../services/topologyLayout';
+import { analyzeSignalTopology } from '../services/signalTopology';
 import TransmitterNode from './nodes/TransmitterNode';
 import ValveNode from './nodes/ValveNode';
 import LoopGroupNode from './nodes/LoopGroupNode';
@@ -75,18 +76,25 @@ const HmiReactFlowView: React.FC<Props> = ({ instruments }) => {
       }
     });
 
-    // 2. Signal lines: model-inferred connectedTo links, else the loop sequence
+    // Explicit directed links are declared project data; inferred loop chains
+    // are visualization heuristics, not evidence.
+    const declared = new Set(analyzeSignalTopology(instruments).edges
+      .map(edge => edge.sourceId + '>' + edge.targetId));
     buildConnections(loopGroups).forEach(({ source, target }) => {
-      const analog = target.signalType.startsWith('A');
+      const isDeclared = declared.has(source.id + '>' + target.id);
       rfEdges.push({
         id: `edge-${source.id}-${target.id}`,
         source: source.id,
         target: target.id,
         type: 'step',
-        animated: analog,
+        animated: false,
+        label: isDeclared ? 'Declared' : undefined,
+        labelStyle: { fill: '#7dd3fc', fontSize: 10 },
         style: {
-          stroke: analog ? '#10b981' : '#3b82f6',
-          strokeDasharray: target.signalType.startsWith('D') ? '5,5' : '0'
+          stroke: isDeclared ? '#00E0FF' : '#64748b',
+          strokeWidth: isDeclared ? 2.5 : 1.3,
+          strokeDasharray: isDeclared ? '0' : '5,5',
+          opacity: isDeclared ? 1 : 0.65,
         }
       });
     });
@@ -116,8 +124,9 @@ const HmiReactFlowView: React.FC<Props> = ({ instruments }) => {
         />
         <Panel position="top-right" className="bg-slate-900/80 p-2 rounded border border-slate-700 backdrop-blur shadow-xl">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-4">
-            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500" /> AI/Transmitter</span>
-            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500" /> AO/Valve</span>
+            <span className="flex items-center gap-1"><div className="h-0.5 w-4 bg-cyan-400" /> Declared directed link</span>
+            <span className="flex items-center gap-1"><div className="w-4 border-t border-dashed border-slate-400" /> Inferred layout only</span>
+            <span>Concept · no OT connection</span>
           </div>
         </Panel>
       </ReactFlow>

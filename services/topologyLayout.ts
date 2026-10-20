@@ -7,13 +7,15 @@ const ROLE_ORDER: Record<LoopRole, number> = { sensor: 0, controller: 1, actuato
 
 /** Position in a control loop: measurement, then control, then final element. */
 export const getLoopRole = (inst: Instrument): LoopRole => {
+  // A PID controller can carry an AO signal while still being a controller.
+  // Determine controller function before treating AO as a final element.
+  const letters = parseTag(inst.tagName)?.functionLetters ?? '';
+  if (inst.pcs7BlockType === 'PIDConL' || letters.slice(1).includes('C') && !isValveTag(inst.tagName))
+    return 'controller';
   if (isValveTag(inst.tagName) || inst.signalType === 'AO' || inst.signalType === 'DO'
     || ['VlvL', 'VlvAnL', 'MotL'].includes(inst.pcs7BlockType)) {
     return 'actuator';
   }
-  // ISA controller letters: C after the measured variable (FIC, PC, TIC...)
-  const letters = parseTag(inst.tagName)?.functionLetters ?? '';
-  if (inst.pcs7BlockType === 'PIDConL' || letters.slice(1).includes('C')) return 'controller';
   return 'sensor';
 };
 
@@ -61,12 +63,21 @@ export const buildConnections = (groups: LoopGroup[]): Connection[] => {
   }));
 
   const connections: Connection[] = [];
-  const seen = new Set<string>();
-  const add = (source: Instrument, target: Instrument) => {
-    // One line per pair, whichever direction was seen first
+  const seen = new Map<string, { index: number; declared: boolean }>();
+  const add = (source: Instrument, target: Instrument, declared = false) => {
+    // Only one line per pair. When a declared directed link conflicts with
+    // an inferred chain, its direction must win over the heuristic.
     const key = [source.id, target.id].sort().join('|');
-    if (source.id === target.id || seen.has(key)) return;
-    seen.add(key);
+    if (source.id === target.id) return;
+    const previous = seen.get(key);
+    if (previous) {
+      if (declared && !previous.declared) {
+        connections[previous.index] = { source, target };
+        seen.set(key, { ...previous, declared: true });
+      }
+      return;
+    }
+    seen.set(key, { index: connections.length, declared });
     connections.push({ source, target });
   };
 
@@ -77,7 +88,7 @@ export const buildConnections = (groups: LoopGroup[]): Connection[] => {
   });
   groups.forEach(({ items }) => items.forEach(source => {
     const target = source.connectedTo ? byTag.get(tagKey(source.connectedTo)) : undefined;
-    if (target) add(source, target);
+    if (target) add(source, target, true);
   }));
   return connections;
 };

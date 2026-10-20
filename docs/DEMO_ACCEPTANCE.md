@@ -38,6 +38,17 @@ explicit review before concept exports, responsive layout and token handling.
 7. Import a deliberately malformed backup; the original projects must remain
    untouched. Reject unauthorized/oversized HTTP uploads without model calls.
 
+## Advanced signal-link editing and provenance
+
+The Tag Management **Signal to** field edits one optional directed instrument
+connection per row. Editing revokes that row's local human review. OT-Sentinel
+reports unresolved, ambiguous, self-referencing or cyclic links as critical
+errors that block all concept exports. HMI cyan edges are independently resolved
+declared links. Gray dashed edges are ONLY visualization heuristics, never
+plant connection evidence. Reviewed **SIGNAL LINKS CSV** downloads contain only
+declared directional links labelled "not certified". It is not vendor-native
+import data, and the system has no live OT integration.
+
 ## Release boundaries
 
 Passing this offline demo does **not** claim verified live AI extraction

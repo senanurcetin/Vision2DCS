@@ -20,7 +20,7 @@ describe('NEXUS tag-map schema v1', () => {
   it('exports stable sorted reviewed rows without drawings, secrets, cost or model confidence', () => {
     const input = project([
       tag('2', 'TT-102', { brand: 'Private Supplier', estimatedCost: 1000000 }),
-      tag('1', 'pt101', { description: 'Pressure', connectedTo: 'sensitive-host.example' }),
+      tag('1', 'pt101', { description: 'Pressure', connectedTo: 'TT-102', safetyWarning: 'sensitive-host.example' }),
     ]);
     const snapshot = structuredClone(input);
     const result = buildReviewedTagMap(input, '2026-10-17T10:00:00.000Z');

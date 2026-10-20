@@ -154,3 +154,7 @@ Run `npm test` for these offline checks. This is **not** a claim of real-browser
 ### Browser session continuity and download verification
 
 Valid local projects reopen after a browser refresh, restoring the last selected valid project (or the newest available one when the prior selection was deleted). Only the selected project ID is saved as UI state; operator AI tokens and in-memory undo/redo history are **never** persisted by this feature. CI's Chromium smoke tests verify real downloaded read-only NEXUS Tag Map v1 JSON, Siemens-style conceptual CSV, and ABB-style conceptual XML bytes, then reload the edited project to confirm review gate and undo history remain safe. These outputs are not vendor-certified engineering imports.
+
+### Advanced signal-link engineering (read-only concept)
+
+The NEXUS Tag Management table now has a **Signal to** input with project tag suggestions. Editing a directed link revokes local review. Unresolved, ambiguous, self-links and cycles are diagnosed by OT-Sentinel and block concept exports. In HMI, **cyan** edges are declared directional connections, whereas **gray dashed** edges are inferred layout only. After explicit review, **SIGNAL LINKS CSV** exports declared edges with their direction and an uncertified-evidence label. No real plant or vendor-import compatibility is claimed.

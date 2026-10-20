@@ -1,5 +1,6 @@
 import { Instrument, SentinelAlert } from '../types';
 import { canonicalizeTag, getLoopKey, isValidIsaTag, isValveTag } from './tagParser';
+import { analyzeSignalTopology } from './signalTopology';
 
 const SAFETY_KEYWORDS = ['safety', 'emergency', 'relief', 'blowdown', 'sdv', 'esdv', 'interlock'];
 
@@ -89,5 +90,8 @@ export const runSentinelAudit = (instruments: Instrument[]): SentinelAlert[] => 
     }
   });
 
+  // Explicit directed signal references must resolve without ambiguity.
+  // The implicit HMI loop chain remains a visualization heuristic only.
+  alerts.push(...analyzeSignalTopology(instruments).issues);
   return alerts;
 };

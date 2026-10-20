@@ -22,6 +22,7 @@ describe('getLoopRole', () => {
   it('classifies measurements, controllers and final elements', () => {
     expect(getLoopRole(inst('FT-101'))).toBe('sensor');
     expect(getLoopRole(inst('FIC-101', { pcs7BlockType: 'PIDConL' }))).toBe('controller');
+    expect(getLoopRole(inst('FIC-101', { pcs7BlockType: 'PIDConL', signalType: 'AO' }))).toBe('controller');
     expect(getLoopRole(inst('TC-5', { pcs7BlockType: 'Unknown' }))).toBe('controller');
     expect(getLoopRole(inst('FCV-101', { signalType: 'AO', pcs7BlockType: 'VlvAnL' }))).toBe('actuator');
     expect(getLoopRole(inst('P-100', { signalType: 'DO', pcs7BlockType: 'MotL' }))).toBe('actuator');
@@ -70,6 +71,14 @@ describe('buildConnections', () => {
       inst('PT-1', { connectedTo: 'PV-1' }),
       inst('PV-1', { signalType: 'AO', pcs7BlockType: 'VlvAnL', connectedTo: 'PT-1' }),
     ])).toEqual(['PT-1>PV-1']);
+  });
+
+  it('keeps declared direction when it opposes a visual loop-order heuristic', () => {
+    expect(pairs([
+      inst('FT-101'),
+      inst('FIC-101', { pcs7BlockType: 'PIDConL', signalType: 'AO', connectedTo: 'FT-101' }),
+      inst('FCV-101', { pcs7BlockType: 'VlvAnL', signalType: 'AO' }),
+    ])).toEqual(['FIC-101>FT-101', 'FIC-101>FCV-101']);
   });
 
   it('matches connectedTo references using canonical tag identity', () => {
