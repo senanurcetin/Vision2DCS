@@ -69,6 +69,11 @@ try {
   if (await page.getByRole('button', { name: 'NEXUS TAG MAP' }).isEnabled()) {
     throw new Error('Synthetic example must still require engineer review.');
   }
+  await page.getByText('Local review: 0/5 tags').waitFor();
+  const reviewProgress = page.getByRole('progressbar', { name: 'Human-reviewed instrument coverage' });
+  if (await reviewProgress.getAttribute('value') !== '0') {
+    throw new Error('Review readiness must start at zero for a synthetic project.');
+  }
   // The selected synthetic project must remain open after a full reload.
   await page.waitForFunction(() => localStorage.getItem('dcs_selected_project_id')?.startsWith('demo-'));
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -91,11 +96,20 @@ try {
   await page.getByText('Inferred layout only').waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'P&ID View' }).click();
 
+  // Destructive row operations must not execute when consent is dismissed.
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.getByRole('button', { name: 'Delete FIC-101' }).click();
+  if (await sampleRows.count() !== 5) {
+    throw new Error('Dismissing instrument deletion consent lost engineering data.');
+  }
+
   // The five draft rows require individual local engineer-review actions.
   for (const tag of ['FT-101', 'FIC-101', 'FCV-101', 'PT-102', 'TT-103']) {
     await page.getByRole('button', { name: 'Mark ' + tag + ' reviewed' }).click();
   }
   if (!(await linkCsv.isEnabled())) throw new Error('Review should enable declared link export.');
+  await page.getByText('Local review: 5/5 tags').waitFor();
+  await page.getByText('Concept exports eligible', { exact: false }).waitFor();
   const linksPromise = page.waitForEvent('download');
   await linkCsv.click();
   const linksDownload = await linksPromise;

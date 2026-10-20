@@ -16,6 +16,8 @@ import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
 import { createSyntheticDemoProject } from './services/offlineDemo';
+import { createLocalId } from './services/localIds';
+import { instrumentDeletionWarning } from './services/instrumentDeletion';
 
 type TabView = 'list' | 'hmi' | 'bom';
 type LeftPanelView = 'image' | 'draft_hmi' | 'twin';
@@ -69,6 +71,10 @@ const App: React.FC = () => {
     [currentProject?.instruments],
   );
   const conceptExportDisabled = !currentProject || exportBlockers.length > 0;
+  const totalRows = currentProject?.instruments.length ?? 0;
+  const reviewedRows = currentProject?.instruments.filter(row => row.reviewed === true).length ?? 0;
+  const criticalFindings = sentinelAlerts.filter(alert => alert.severity === 'error').length;
+  const advisoryFindings = sentinelAlerts.filter(alert => alert.severity !== 'error').length;
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (IS_PUBLIC_DEMO) return;
@@ -89,7 +95,7 @@ const App: React.FC = () => {
       const image = await prepareImage(file);
       const instruments = await analyzePIDImage(image.base64, image.mimeType);
       addProject({
-        id: `proj-${Date.now()}`,
+        id: createLocalId('proj'),
         name: file.name.replace(/\.[^/.]+$/, ""),
         date: new Date().toLocaleString(),
         imageUrl: image.dataUrl,
@@ -106,7 +112,7 @@ const App: React.FC = () => {
     setErrorMessage(null);
     try {
       // A local raster and pre-labelled synthetic data only. Never invoke Gemini.
-      addProject(await createSyntheticDemoProject(`demo-${Date.now()}`));
+      addProject(await createSyntheticDemoProject(createLocalId('demo')));
       setLeftPanelView('image');
       setActiveTab('list');
       setIsSidebarOpen(false);
@@ -140,13 +146,15 @@ const App: React.FC = () => {
   }, [currentProjectId, editInstruments]);
 
   const deleteInstrument = useCallback((id: string) => {
-    if (!currentProjectId) return;
+    if (!currentProjectId || !currentProject) return;
+    const warning = instrumentDeletionWarning(currentProject.instruments, id);
+    if (!warning || !window.confirm(warning)) return;
     editInstruments(currentProjectId, instruments => instruments.filter(inst => inst.id !== id));
-  }, [currentProjectId, editInstruments]);
+  }, [currentProjectId, currentProject, editInstruments]);
 
   const addInstrument = useCallback(() => {
     if (!currentProjectId) return;
-    const prefix = 'manual-' + Date.now();
+    const prefix = createLocalId('manual');
     editInstruments(currentProjectId, instruments => [
       ...instruments,
       // Manual entries still start as Unknown/low and require explicit review.
@@ -170,7 +178,7 @@ const App: React.FC = () => {
     if (!file) return;
     try {
       assertProjectBackupBytes(file.size);
-      addProject(parseProjectBackup(await file.text(), `proj-${Date.now()}`));
+      addProject(parseProjectBackup(await file.text(), createLocalId('proj')));
       setErrorMessage(null);
       setIsSidebarOpen(false);
     } catch (err) {
@@ -418,6 +426,28 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {currentProject && (
+                <section aria-label="Engineering review progress" className="mb-3 rounded-xl border border-cyan-400/20 bg-slate-950/35 px-4 py-3">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <span className="font-semibold text-cyan-100">Local review: {reviewedRows}/{totalRows} tags</span>
+                    <span className={criticalFindings ? 'font-semibold text-red-300' : 'text-slate-400'}>
+                      {criticalFindings} critical · {advisoryFindings} advisory
+                    </span>
+                  </div>
+                  <progress
+                    aria-label="Human-reviewed instrument coverage"
+                    value={reviewedRows}
+                    max={Math.max(totalRows, 1)}
+                    className="h-2 w-full accent-cyan-400"
+                  />
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    {conceptExportDisabled
+                      ? 'Concept exports require every tag reviewed and all critical findings resolved.'
+                      : 'Concept exports eligible — local review is not engineering certification.'}
+                  </p>
+                </section>
+              )}
 
               {currentProject && exportBlockers.length > 0 && (
                 <div role="status" className="mb-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">

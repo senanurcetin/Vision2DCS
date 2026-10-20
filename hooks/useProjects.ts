@@ -36,22 +36,26 @@ export type ProjectAction =
  */
 export const projectReducer = (state: ProjectState, action: ProjectAction): ProjectState => {
   if (action.type === 'add') {
-    const histories = { ...state.histories };
-    delete histories[action.project.id];
+    // Never silently replace a saved project on an ID collision.
+    if (state.projects.some(project => project.id === action.project.id)) return state;
     return {
       ...state,
-      projects: [action.project, ...state.projects.filter(p => p.id !== action.project.id)],
+      projects: [action.project, ...state.projects],
       currentId: action.project.id,
-      histories,
     };
   }
-  if (action.type === 'select') return { ...state, currentId: action.id };
+  if (action.type === 'select') {
+    if (action.id !== null && !state.projects.some(project => project.id === action.id)) return state;
+    return { ...state, currentId: action.id };
+  }
   if (action.type === 'remove') {
+    if (!state.projects.some(project => project.id === action.id)) return state;
     const histories = { ...state.histories };
     delete histories[action.id];
+    const projects = state.projects.filter(project => project.id !== action.id);
     return {
-      projects: state.projects.filter(p => p.id !== action.id),
-      currentId: state.currentId === action.id ? null : state.currentId,
+      projects,
+      currentId: state.currentId === action.id ? (projects[0]?.id ?? null) : state.currentId,
       histories,
     };
   }

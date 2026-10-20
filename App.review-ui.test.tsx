@@ -101,9 +101,15 @@ describe('instrument review/export DOM acceptance', () => {
       expect(button(label).disabled, label).toBe(true);
     }
     expect(host.textContent).toContain('Explicit human review');
+    expect(host.textContent).toContain('Local review: 0/1 tags');
+    const progress = host.querySelector<HTMLProgressElement>('progress[aria-label="Human-reviewed instrument coverage"]');
+    expect(progress?.value).toBe(0);
+    expect(progress?.max).toBe(1);
     expect(host.querySelector<HTMLImageElement>('img[alt^="P&ID drawing:"]')?.className).toContain('max-w-full');
 
     await act(async () => review('Mark PT-101 reviewed').click());
+    expect(host.textContent).toContain('Local review: 1/1 tags');
+    expect(host.textContent).toContain('Concept exports eligible');
     for (const label of ['SIEMENS PCS7', 'ABB 800xA', 'NEXUS TAG MAP']) {
       expect(button(label).disabled, label).toBe(false);
     }
@@ -136,6 +142,24 @@ describe('instrument review/export DOM acceptance', () => {
     expect(harness.csv).not.toHaveBeenCalled();
     expect(harness.abb).not.toHaveBeenCalled();
   });
+  it('requires explicit confirmation before deleting an instrument or its linked target', async () => {
+    harness.project = fixture([instrument]);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    try {
+      await act(async () => root.render(<App />));
+      const deleteBtn = review('Delete PT-101');
+      await act(async () => deleteBtn.click());
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(confirm.mock.calls[0][0]).toContain('Export a project backup');
+      expect(host.querySelectorAll('table tbody tr')).toHaveLength(1);
+      confirm.mockReturnValue(true);
+      await act(async () => deleteBtn.click());
+      expect(host.textContent).toContain('NO DATA DETECTED');
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
   it('excludes collapsed history controls from focus and exposes an accessible toggle', async () => {
     harness.project = fixture([instrument]);
     await act(async () => root.render(<App />));
