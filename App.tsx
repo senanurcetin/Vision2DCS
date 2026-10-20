@@ -5,7 +5,7 @@ import HmiReactFlowView from './components/HmiReactFlowView';
 import AuditBOM from './components/AuditBOM';
 import { Instrument, AnalysisProject } from './types';
 import { analyzePIDImage, generateDigitalTwin, setAiAccessToken } from './services/geminiService';
-import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText } from './services/exportService';
+import { downloadSiemensCSV, downloadABBXML, downloadBomCSV, downloadText, downloadSignalLinksCSV } from './services/exportService';
 import { normalizeInstrument } from './services/normalizeInstruments';
 import { assertProjectBackupBytes, parseProjectBackup, serializeProject } from './services/projectBackup';
 import { runSentinelAudit } from './services/otSentinelService';
@@ -387,6 +387,19 @@ const App: React.FC = () => {
                 <div className="flex gap-2">
                   <button disabled={conceptExportDisabled} title={exportBlockers[0] ?? 'Unverified Siemens-style concept export'} onClick={() => { if (!conceptExportDisabled && currentProject) downloadSiemensCSV(currentProject.instruments, currentProject.name); }} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">SIEMENS PCS7</button>
                   <button disabled={conceptExportDisabled} title={exportBlockers[0] ?? 'Unverified ABB-style concept export'} onClick={() => { if (!conceptExportDisabled && currentProject) downloadABBXML(currentProject.instruments, currentProject.name); }} className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">ABB 800xA</button>
+                  <button type="button"
+                    disabled={conceptExportDisabled}
+                    title={exportBlockers[0] ?? 'Reviewed directed links, not inferred HMI edges'}
+                    onClick={() => {
+                      if (!currentProject || conceptExportDisabled) return;
+                      try {
+                        downloadSignalLinksCSV(currentProject.instruments, currentProject.name);
+                      } catch (error) {
+                        setErrorMessage(error instanceof Error ? error.message : 'Signal link export failed.');
+                      }
+                    }}
+                    className="rounded-lg border border-cyan-400/25 bg-slate-800 px-3 py-1.5 text-[10px] font-bold text-cyan-100 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >SIGNAL LINKS CSV</button>
                   <button
                     disabled={conceptExportDisabled}
                     title={exportBlockers[0] ?? 'Offline read-only human-reviewed NEXUS contract'}
