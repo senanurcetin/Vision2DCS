@@ -1,0 +1,45 @@
+{
+  "description": "Storage vessel with transfer pump and low-level switch",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "LT-901",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "LIC-901",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "LV-901",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "P-902",
+      "signalType": "DO",
+      "pcs7BlockType": "MotL"
+    },
+    {
+      "tagName": "LSL-903",
+      "signalType": "DI",
+      "pcs7BlockType": "MonDiL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "LT-901",
+      "target": "LIC-901"
+    },
+    {
+      "source": "LIC-901",
+      "target": "LV-901"
+    }
+  ]
+}

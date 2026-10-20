@@ -32,6 +32,13 @@ describe('scoreSample', () => {
     });
   });
 
+  it('never awards a correct classification for absent reference labels', () => {
+    const scored = scoreSample([{ tagName: 'PT-101' }], [actual('PT-101')]);
+    expect(scored.matched).toBe(1);
+    expect(scored.signalCorrect).toBe(0);
+    expect(scored.blockCorrect).toBe(0);
+  });
+
   it('rejects contradicting duplicate extracted tags instead of letting order set type accuracy', () => {
     const expected = [{ tagName: 'PT-101', signalType: 'AI', pcs7BlockType: 'MonAnL' }];
     const ambiguous = [

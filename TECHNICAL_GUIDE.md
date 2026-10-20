@@ -24,7 +24,7 @@ All Gemini calls run on the server so the API key never reaches the browser. **L
 Mapping a 2D image back to a node-based graph:
 1. **Loop Parsing**: `services/tagParser.ts` splits a tag into function letters, loop number and suffix. The loop is the first (measured-variable) letter plus the number, so `FT-101` and `FCV-101` share loop `F-101` while `TT-101` is loop `T-101`.
 2. **Grouping and ordering** (`services/topologyLayout.ts`): instruments with the same loop key are clustered into `loopGroup` nodes and ordered by role: measurement first, then controller (`PIDConL` or a `C` after the measured-variable letter, e.g. `FIC`), then final element (valves, AO/DO, motors). The model's own output order no longer decides the layout.
-3. **Signal lines**: each loop is chained in that order, and the model's `connectedTo` links are drawn on top, including links between loops. Instrument tags and `connectedTo` references use the same canonical identity. Partial links never remove the loop chain, and each pair gets a single line.
+3. **Signal lines**: gray dashed edges illustrate inferred loop-order chains only, while solid cyan lines show individually resolved declared `connectedTo` links. A declared direction overrides the opposing inferred layout for the same pair. Missing, ambiguous, self-referential or cyclic declared connections raise OT-Sentinel blockers. The editor supports one outgoing connection per instrument, not a complete physical topology graph.
 
 ## 🖼 Upload and Persistence
 
@@ -98,3 +98,11 @@ Generates a structured XML fragment where each instrument is assigned an `Aspect
 ## Node runtime baseline (toolchain upgrade phase 1)
 
 Use Node 24 LTS, minimum v24.15.0 and pinned v24.22.0 for reproducible GitHub Actions, CircleCI, browser smoke and local `.nvmrc`. `package.json` and root `package-lock.json` engine metadata agree. This stage does not upgrade Vite, Vitest, vite-node or jsdom and intentionally leaves all transitive lockfile entries unchanged. Advance those coordinated toolchain changes only in later tested PRs. Any runtime mismatch must fail the dependency/CI checks; never skip safety tests to merge.
+
+## Research evidence and reproducibility
+
+The ten-drawing synthetic corpus now has source SVGs, validated PNGs and hand-authored gold reference labels. `npm run eval:inspect` produces an **unscored** SHA-256 inventory. Preflight rejects missing signal/block labels; missing ground truth never receives credit as a correct prediction. The eight new procedural cases share a drawing style. Passing CI demonstrates software correctness, not real Gemini accuracy or independent engineering certification. See [research evidence](docs/RESEARCH_EVIDENCE.md).
+
+### Additional classification advisory
+
+OT-Sentinel now compares assigned AI/AO/DI/DO signal class against a small **illustrative** MonAnL/MonDiL/MotL/VlvL/VlvAnL/PIDConL block mapping table. Inconsistent classifications raise advisory warnings and are never auto-corrected. These mappings are conceptual shorthand and must not be treated as a verified Siemens PCS7 import schema or a plant safety assessment. Existing human review and critical topology blockers remain authoritative for concept exports.

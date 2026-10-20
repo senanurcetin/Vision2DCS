@@ -48,6 +48,14 @@ describe('offline all-fixture benchmark preflight', () => {
     });
     await expect(prepareBenchmarkSamples(root)).rejects.toThrow('unknown or self-referencing');
   });
+  it('requires complete type labels to prevent inflated accuracy denominators', async () => {
+    const root = await dir();
+    await sample(root, 'unlabelled', {
+      ...expected, instruments: [{ tagName: 'FT-101', signalType: 'AI' }, expected.instruments[1]],
+    });
+    await expect(prepareBenchmarkSamples(root)).rejects.toThrow('Invalid benchmark instrument label');
+  });
+
   it('refuses duplicate tags and unsupported signal classifications', async () => {
     const root = await dir();
     await sample(root, 'duplicate', { ...expected,

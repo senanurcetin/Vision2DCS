@@ -88,3 +88,17 @@ The confirmation reports incoming declared signal references by canonical tag
 identity and warns that dangling references will remain unresolved, while
 in-memory Undo stops being available on reload. Cancel leaves project data and
 undo history unchanged. No automatic cascade deletes other signal definitions.
+
+## Distinct research exercises
+
+The live NEXUS demo offers two independent synthetic engineering exercises:
+`flow-control-loop` (FT-101 → FIC-101 → FCV-101) and `tank-level`
+(LT-201 → LIC-201 → LV-201). The remaining instruments have no invented
+signal edges. Both use source-controlled reference drawings, explicit labels,
+and newly allocated local project IDs. Neither is a measured Gemini outcome;
+each must start with zero locally reviewed tags. The browser E2E checks the
+full second scenario as well as the original one.
+
+## Research exercise acceptance
+
+Two independently selected public scenarios (flow-control and tank-level) must open without AI requests, remain unreviewed, retain correct declared directed signal links and preserve local project history. The source-controlled benchmark has ten synthetic cases, eight sharing a common procedural drawing grammar. The new `eval:inspect` inventory is explicitly unscored; do not infer model performance or plant certification from successful software tests. See `docs/RESEARCH_EVIDENCE.md`.

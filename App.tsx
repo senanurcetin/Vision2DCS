@@ -15,7 +15,7 @@ import { serializeNexusTagMapV1 } from './services/nexusTagMapReader';
 import { applyInstrumentUpdate } from './services/reviewState';
 import { prepareImage, validateImageFile } from './services/imageUpload';
 import { useProjects } from './hooks/useProjects';
-import { createSyntheticDemoProject } from './services/offlineDemo';
+import { createSyntheticDemoProject, type DemoScenario } from './services/offlineDemo';
 import { createLocalId } from './services/localIds';
 import { instrumentDeletionWarning } from './services/instrumentDeletion';
 
@@ -108,11 +108,11 @@ const App: React.FC = () => {
     }
   };
 
-  const loadSyntheticDemo = async () => {
+  const loadSyntheticDemo = async (scenario: DemoScenario = 'flow-control-loop') => {
     setErrorMessage(null);
     try {
       // A local raster and pre-labelled synthetic data only. Never invoke Gemini.
-      addProject(await createSyntheticDemoProject(createLocalId('demo')));
+      addProject(await createSyntheticDemoProject(createLocalId('demo'), scenario));
       setLeftPanelView('image');
       setActiveTab('list');
       setIsSidebarOpen(false);
@@ -249,13 +249,14 @@ const App: React.FC = () => {
               </>
             )}
           </div>
-          <button type="button" onClick={loadSyntheticDemo} className="rounded-full border border-cyan-400/45 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20" title="Explore a synthetic P&ID and manually editable tags without API calls">Load sample P&amp;ID</button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/jpeg,image/png,image/webp" />
           <button disabled={!aiAccessConfigured || isAnalyzing} title={!aiAccessConfigured ? 'Set an operator AI access token first' : 'Analyze a P&ID drawing'} onClick={() => fileInputRef.current?.click()} className="nexus-primary-action rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
             Process Diagram
           </button>
             </>
           )}
+          <button type="button" onClick={() => loadSyntheticDemo('flow-control-loop')} className="rounded-full border border-cyan-400/45 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/20" title="Explore a synthetic P&ID and manually editable tags without API calls">Load sample P&amp;ID</button>
+          <button type="button" onClick={() => loadSyntheticDemo('tank-level')} className="rounded-full border border-indigo-400/35 bg-indigo-500/10 px-4 py-2 text-xs font-semibold text-indigo-100 transition-colors hover:bg-indigo-500/20" title="Explore an independent synthetic level-control P&ID without AI calls">Tank-level sample</button>
         </div>
       </header>
 
@@ -274,7 +275,7 @@ const App: React.FC = () => {
 
       {currentProject?.id.startsWith('demo-') && (
         <div role="status" className="border-b border-cyan-400/20 bg-cyan-400/5 px-5 py-2 text-[11px] text-cyan-100">
-          Synthetic sample · five draft tags · no live plant connection · human review required before concept exports
+          Synthetic sample · {currentProject.instruments.length} draft tags · no live plant connection · human review required before concept exports
         </div>
       )}
 
@@ -341,8 +342,11 @@ const App: React.FC = () => {
                     <p className="mx-auto mb-7 max-w-md text-sm leading-relaxed text-slate-300">
                       Open a synthetic reactor-feed diagram with five editable instrument tags, topology and audit views. No real plant data or AI key required.
                     </p>
-                    <button type="button" onClick={loadSyntheticDemo} className="nexus-primary-action rounded-full px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition-transform hover:scale-[1.02]">
+                    <button type="button" onClick={() => loadSyntheticDemo('flow-control-loop')} className="nexus-primary-action rounded-full px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition-transform hover:scale-[1.02]">
                       Explore sample project
+                    </button>
+                    <button type="button" onClick={() => loadSyntheticDemo('tank-level')} className="ml-0 mt-3 rounded-full border border-indigo-400/35 bg-indigo-500/10 px-6 py-3 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/20 sm:ml-3 sm:mt-0">
+                      Explore tank-level study
                     </button>
                     <p className="mt-6 text-xs leading-relaxed text-slate-400">
                       1. Review tags &nbsp;·&nbsp; 2. Inspect HMI topology &nbsp;·&nbsp; 3. Check BOM &amp; export gates

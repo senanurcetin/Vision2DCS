@@ -16,6 +16,17 @@ describe('unprivileged offline NEXUS demonstration', () => {
     expect(JSON.stringify(rows)).not.toMatch(/api.key|secret|gemini/i);
   });
 
+  it('offers a tank-level exercise with exact annotated signal directions', () => {
+    const rows = createSyntheticDemoInstruments('tank-level');
+    expect(rows.map(row => row.tagName))
+      .toEqual(['LT-201', 'LIC-201', 'LV-201', 'LSH-202', 'XV-203', 'P-204']);
+    expect(rows.filter(row => row.connectedTo).map(row => row.tagName + '>' + row.connectedTo))
+      .toEqual(['LT-201>LIC-201', 'LIC-201>LV-201']);
+    expect(rows.every(row => isStoredInstrument(row) && row.reviewed === false)).toBe(true);
+    expect(conceptExportBlockers(rows).length).toBeGreaterThan(0);
+    expect(runSentinelAudit(rows).filter(alert => alert.severity === 'error')).toEqual([]);
+  });
+
   it('never reports a human review or reuses mutated source row objects', () => {
     const draft = createSyntheticDemoInstruments();
     draft[0].tagName = 'MUTATED';

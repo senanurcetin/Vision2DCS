@@ -8,6 +8,8 @@ on:
       - 'hooks/**'
       - 'components/**'
       - 'services/projectBackup.ts'
+      - 'services/offlineDemo.ts'
+      - 'samples/**'
       - 'index.css'
       - 'scripts/browser-smoke.mjs'
       - '.github/workflows/browser-smoke.yml'

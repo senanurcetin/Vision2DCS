@@ -1,0 +1,40 @@
+{
+  "description": "Heat exchanger temperature loop with adjacent feed transmitter",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "TT-501",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "TIC-501",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "TCV-501",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "FT-502",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "TT-501",
+      "target": "TIC-501"
+    },
+    {
+      "source": "TIC-501",
+      "target": "TCV-501"
+    }
+  ]
+}

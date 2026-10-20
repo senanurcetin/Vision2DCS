@@ -1,0 +1,40 @@
+{
+  "description": "Gas header pressure regulation and temperature measurement",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "PT-1001",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "PIC-1001",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "PCV-1001",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "TT-1002",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "PT-1001",
+      "target": "PIC-1001"
+    },
+    {
+      "source": "PIC-1001",
+      "target": "PCV-1001"
+    }
+  ]
+}
