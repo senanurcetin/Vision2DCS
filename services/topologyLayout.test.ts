@@ -68,9 +68,9 @@ describe('buildConnections', () => {
 
   it('draws one line per pair even when the model links both ways', () => {
     expect(pairs([
-      inst('PT-1', { connectedTo: 'PV-1' }),
-      inst('PV-1', { signalType: 'AO', pcs7BlockType: 'VlvAnL', connectedTo: 'PT-1' }),
-    ])).toEqual(['PT-1>PV-1']);
+      inst('PT-101', { connectedTo: 'PV-101' }),
+      inst('PV-101', { signalType: 'AO', pcs7BlockType: 'VlvAnL', connectedTo: 'PT-101' }),
+    ])).toEqual(['PT-101>PV-101']);
   });
 
   it('keeps declared direction when it opposes a visual loop-order heuristic', () => {
@@ -83,19 +83,19 @@ describe('buildConnections', () => {
 
   it('matches connectedTo references using canonical tag identity', () => {
     expect(pairs([
-      inst('PT-5', { connectedTo: ' pv101a ' }),
+      inst('PT-105', { connectedTo: ' pv101a ' }),
       inst('PV-101A', { signalType: 'AO', pcs7BlockType: 'VlvAnL' }),
-    ])).toEqual(['PT-5>PV-101A']);
+    ])).toEqual(['PT-105>PV-101A']);
   });
 
   it.each([
     { name: 'first', labels: ['FT101', 'FT-101'] },
     { name: 'reversed', labels: ['FT-101', 'FT101'] },
   ])('does not guess a connectedTo target when canonical tags collide ($name)', ({ labels }) => {
-    const source = inst('PT-5', { id: 'source', connectedTo: 'ft 101' });
+    const source = inst('PT-105', { id: 'source', connectedTo: 'ft 101' });
     const duplicates = labels.map((tagName, index) =>
       inst(tagName, { id: `flow-${index}` }));
-    const unaffected = inst('PT-6', { id: 'other-source', connectedTo: ' pv101a ' });
+    const unaffected = inst('PT-106', { id: 'other-source', connectedTo: ' pv101a ' });
     const unique = inst('PV-101A', {
       id: 'unique-target', signalType: 'AO', pcs7BlockType: 'VlvAnL',
     });
@@ -109,12 +109,34 @@ describe('buildConnections', () => {
       .toBe(true);
   });
 
+  it('never adds a cross-loop HMI line from raw ambiguous declared input', () => {
+    const rows = [
+      inst('FT-101', { id: 'flow-a', connectedTo: 'PT-201' }),
+      inst('ft101', { id: 'flow-b' }),
+      inst('PT-201', { id: 'pressure' }),
+    ];
+    // Same-loop heuristic can still show a dashed layout chain, but the
+    // ambiguous cross-loop source must not be emitted as a declared link.
+    expect(pairs(rows).some(pair => pair.endsWith('>PT-201'))).toBe(false);
+
+    // A repeated internal row ID cannot create an independently declared
+    // cross-loop edge, even with unique visible tag strings.
+    expect(pairs([
+      inst('LT-201', { id: 'duplicate', connectedTo: 'PT-301' }),
+      inst('FT-101', { id: 'duplicate' }),
+      inst('PT-301', { id: 'target' }),
+    ])).toEqual([]);
+
+    expect(pairs([inst('PT-1', { connectedTo: 'LT-201' }), inst('LT-201')]))
+      .toEqual([]);
+  });
+
   it('ignores links to unknown tags and self links, and does not chain Misc', () => {
     expect(pairs([
-      inst('PT-1', { connectedTo: 'NOPE-9' }),
-      inst('PI-1', { connectedTo: 'PI-1' }),
+      inst('PT-101', { connectedTo: 'NOPE-9' }),
+      inst('PI-101', { connectedTo: 'PI-101' }),
       inst('PUMP'),
       inst('MIXER'),
-    ])).toEqual(['PT-1>PI-1']);
+    ])).toEqual(['PT-101>PI-101']);
   });
 });
