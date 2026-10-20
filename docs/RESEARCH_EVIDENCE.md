@@ -110,3 +110,39 @@ JSON record in React memory only. Uploaded report provenance is not
 independently authenticated. Do not present test-only or procedural fixture
 records as Gemini performance. Without a real, user-supplied evaluation report,
 the interface displays **no measured extraction results**.
+
+## Measured non-generative Tesseract tag baseline
+
+An independent, explicitly labelled **tag-reading-only** reference is provided
+by the optional system Tesseract OCR engine and deterministic, bounded ISA-like
+tag token parser:
+
+```sh
+# Install Tesseract OCR with English language data using the OS package manager.
+npm run eval:preflight
+npm run eval:ocr
+npm run eval:diagnose -- eval/results/latest.json
+# After a separately authorized real Gemini evaluation is available:
+npm run eval:compare-tags -- <ocr-baseline.json> <real-gemini-report-v2.json>
+```
+
+`eval:ocr` makes CPU-only Tesseract calls on **exact validated PNG bytes**
+written to restricted temporary files; it never reads SVG source text as an OCR
+substitute or passes reference labels to Tesseract. Tesseract version and page
+segmentation mode (`eng-psm11`) are recorded in a source-hashed, schema-v1
+report. All inputs must pass the full preflight first, and failures never save
+invented success results. Running the command locally requires installed
+Tesseract. The dedicated `Vision2DCS offline OCR research baseline` GitHub
+Actions workflow installs it and runs actual OCR without Gemini credentials,
+retaining the measured report and per-drawing diagnostics as short-lived
+artifacts, not benchmark numbers hardcoded in documentation.
+
+**Fair comparison:** `eval:compare-tags` only compares precision, recall and
+F1 for instrument tag detection after verifying identical drawing and label
+SHA-256 identities for all cases. It deliberately permits a schema-v1
+OCR report against a schema-v2 Gemini report **only for tag metrics**. OCR does
+not predict AI/AO/DI/DO classifications, Siemens block types or signal links;
+zero placeholder classification counts in the v1 report must not be presented
+as a measured skill. Do not use the broader `eval:compare` for mixed versions.
+The corpus is still mostly procedurally related and no generalization claim
+follows from these synthetic results.
