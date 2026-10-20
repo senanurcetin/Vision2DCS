@@ -85,3 +85,16 @@ compare them with care. This diagnostic **does not** produce performance numbers
 without a saved report, run Gemini, certify independent examples, or establish
 an uncertainty interval. Saved-report provenance is not independently verified;
 synthetic fixtures with shared grammar remain correlated research examples.
+
+## Demonstrating alarm logic without manufacturing plant evidence
+
+The **Training Lab** implements a deterministic, entirely local sequence of
+example observations, advisory/trip thresholds, a latched event, operator
+acknowledgement and explicit clear-range reset. Example tags match the two
+synthetic case studies, but thresholds and hypothetical effects are manually
+invented educational data and are **not** extracted from drawings. A sensor
+fault yields an **UNKNOWN** observation rather than a fabricated safe state.
+The event history is bounded and ephemeral. This illustrates how to review a
+simple alarm sequence; it is neither process dynamics nor a functional-safety
+or cause/effect matrix verification. No plant commands, actuator control,
+networked I/O, AI inference or paid model access are involved.
