@@ -2,6 +2,7 @@ import type { AnalysisProject, Instrument } from '../types';
 import { isValidCanonicalBase64 } from './base64';
 
 export const STORAGE_KEY = 'dcs_projects';
+export const SELECTED_PROJECT_KEY = 'dcs_selected_project_id';
 
 type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
@@ -99,6 +100,35 @@ export const saveProjects = (storage: KeyValueStorage | undefined, projects: Ana
     return { ok: true };
   } catch (error) {
     return { ok: false, reason: isQuotaError(error) ? 'quota' : 'unavailable' };
+  }
+};
+
+/**
+ * A UI-only preference, resolved against the already validated project list.
+ * A stale ID or disabled storage never hides otherwise recoverable projects.
+ */
+export const restoreSelectedProjectId = (
+  storage: Pick<Storage, 'getItem'> | undefined,
+  projects: ReadonlyArray<Pick<AnalysisProject, 'id'>>,
+): string | null => {
+  if (!projects.length) return null;
+  try {
+    const selected = storage?.getItem(SELECTED_PROJECT_KEY);
+    if (selected && projects.some(project => project.id === selected)) return selected;
+  } catch {
+    // Local storage may be unavailable in private browsing.
+  }
+  return projects[0].id;
+};
+
+export const saveSelectedProjectId = (
+  storage: Pick<Storage, 'setItem'> | undefined,
+  selectedId: string | null,
+): void => {
+  try {
+    storage?.setItem(SELECTED_PROJECT_KEY, selectedId ?? '');
+  } catch {
+    // Best-effort only: no project data may be discarded on failure.
   }
 };
 
