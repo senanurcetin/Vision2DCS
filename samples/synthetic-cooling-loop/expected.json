@@ -1,0 +1,45 @@
+{
+  "description": "Cooling loop with temperature and low pressure switch",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "TT-801",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "TIC-801",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "TCV-801",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "FT-802",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "PSL-803",
+      "signalType": "DI",
+      "pcs7BlockType": "MonDiL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "TT-801",
+      "target": "TIC-801"
+    },
+    {
+      "source": "TIC-801",
+      "target": "TCV-801"
+    }
+  ]
+}

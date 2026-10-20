@@ -1,0 +1,45 @@
+{
+  "description": "Batch reactor heater with high-level and feed monitor",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "TT-1101",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "TIC-1101",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "TV-1101",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "LSH-1102",
+      "signalType": "DI",
+      "pcs7BlockType": "MonDiL"
+    },
+    {
+      "tagName": "FT-1103",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "TT-1101",
+      "target": "TIC-1101"
+    },
+    {
+      "source": "TIC-1101",
+      "target": "TV-1101"
+    }
+  ]
+}

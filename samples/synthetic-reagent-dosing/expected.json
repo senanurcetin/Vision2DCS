@@ -1,0 +1,40 @@
+{
+  "description": "Reagent feed flow control with pressure monitor",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "FT-701",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "FIC-701",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "FCV-701",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "PT-702",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "FT-701",
+      "target": "FIC-701"
+    },
+    {
+      "source": "FIC-701",
+      "target": "FCV-701"
+    }
+  ]
+}

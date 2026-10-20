@@ -1,0 +1,45 @@
+{
+  "description": "Buffer tank level loop with discrete high alarm and isolation",
+  "synthetic": true,
+  "provenance": "Procedural schematic, no real plant data",
+  "instruments": [
+    {
+      "tagName": "LT-601",
+      "signalType": "AI",
+      "pcs7BlockType": "MonAnL"
+    },
+    {
+      "tagName": "LIC-601",
+      "signalType": [
+        "AI",
+        "AO"
+      ],
+      "pcs7BlockType": "PIDConL"
+    },
+    {
+      "tagName": "LV-601",
+      "signalType": "AO",
+      "pcs7BlockType": "VlvAnL"
+    },
+    {
+      "tagName": "LSH-602",
+      "signalType": "DI",
+      "pcs7BlockType": "MonDiL"
+    },
+    {
+      "tagName": "XV-603",
+      "signalType": "DO",
+      "pcs7BlockType": "VlvL"
+    }
+  ],
+  "signalConnections": [
+    {
+      "source": "LT-601",
+      "target": "LIC-601"
+    },
+    {
+      "source": "LIC-601",
+      "target": "LV-601"
+    }
+  ]
+}
