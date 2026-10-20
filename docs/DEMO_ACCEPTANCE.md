@@ -144,3 +144,15 @@ provenance, ground-truth label quality, plant applicability or certification.
 
 Chromium smoke must check the valid synthetic **test-only** JSON and reject an
 altered summary in both developer and public static builds without /api calls.
+
+## Repeatable image-based OCR tag baseline
+
+The optional `npm run eval:ocr` command runs a real installed Tesseract
+engine on already prevalidated PNG image bytes, not extracted SVG/label text.
+It records an engine-version-tagged, SHA-bound historical **tag-only** report
+with real observed detections. It makes no AI calls. The separate GitHub
+Actions OCR workflow must pass and publish a diagnostics artifact before its
+measured tag scores are cited; a passing parser unit test alone is not OCR
+quality evidence. Mixed v1 OCR and v2 Gemini reports may be paired only via
+`npm run eval:compare-tags -- <baseline> <candidate>` on exact source hashes,
+and only their tag detection precision/recall/F1 may be interpreted.
