@@ -1,0 +1,56 @@
+name: Vision2DCS offline OCR research baseline
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'eval/**'
+      - 'samples/**'
+      - 'package.json'
+      - '.github/workflows/ocr-baseline.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'eval/**'
+      - 'samples/**'
+      - 'package.json'
+      - '.github/workflows/ocr-baseline.yml'
+  workflow_dispatch:
+
+jobs:
+  measured-ocr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.22.0'
+          cache: npm
+      - name: Install locked application dependencies
+        run: npm ci
+      - name: Install system OCR engine, no model credentials
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng
+          tesseract --version
+      - name: Validate original source hashes and labels
+        run: npm run eval:preflight
+      - name: Run actual CPU-only OCR on all checked PNGs
+        run: npm run eval:ocr
+        env:
+          GEMINI_API_KEY: ''
+          VISION2DCS_ENABLE_AI: 'false'
+      - name: Validate source-hashed measured OCR report
+        run: npm run eval:diagnose -- eval/results/latest.json > eval/results/ocr-diagnostics.json
+      - name: Retain source-hashed report as research evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vision2dcs-measured-tesseract-ocr-${{ github.run_id }}
+          path: |
+            eval/results/latest.json
+            eval/results/ocr-diagnostics.json
+          if-no-files-found: error
+          retention-days: 7
