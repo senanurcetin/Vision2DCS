@@ -105,3 +105,23 @@ full second scenario as well as the original one.
 ## Research exercise acceptance
 
 Two independently selected public scenarios (flow-control and tank-level) must open without AI requests, remain unreviewed, retain correct declared directed signal links and preserve local project history. The source-controlled benchmark has ten synthetic cases, eight sharing a common procedural drawing grammar. The new `eval:inspect` inventory is explicitly unscored; do not infer model performance or plant certification from successful software tests. See `docs/RESEARCH_EVIDENCE.md`.
+
+## Offline cause/effect education (synthetic only)
+
+Open a sample project, choose **Training Lab**, then use the keyboard-accessible
+observation slider. Two independent synthetic examples are available: a buffer
+tank high-level lesson (LT-201) and a reactor feed low-flow lesson (FT-101).
+The exercise uses arbitrary training thresholds, **not** P&ID-derived plant
+logic, PLC code, a vendor function block or certified protective actions.
+
+Acceptance: a trip threshold sets a local latch; acknowledging an alarm does
+not release it. The latch can be reset only after moving into a separate clear
+range with a healthy observation. An injected sensor fault is **UNKNOWN**, not
+NORMAL, and prohibits reset. Changing scenario or restarting resets only the
+local educational simulation. The last 20 events remain visible, without
+browser storage, network requests, API tokens or any control connection.
+
+Both desktop and public static demo builds must run this exercise entirely
+offline. The Chromium smoke checks level trip, acknowledgement, clearing,
+sensor fault and selection of the flow scenario. Educational effects are text
+only and must never be sent to a PLC/DCS or interpreted as an interlock design.
