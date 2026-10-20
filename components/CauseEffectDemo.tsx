@@ -78,7 +78,7 @@ const CauseEffectDemo: React.FC = () => {
         <div role="status" aria-live="polite"
           className={'rounded-lg border bg-slate-900/70 p-4 ' + conditionColor}>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Synthetic observation</p>
-          <p className="mt-2 text-lg font-bold uppercase">{condition}</p>
+          <p className="mt-2 text-lg font-bold uppercase">{condition.toUpperCase()}</p>
           <p className="mt-2 text-xs">Trip latch: <strong>{state.tripLatched ? 'ACTIVE' : 'clear'}</strong></p>
           <p className="mt-1 text-xs">Acknowledgement: <strong>{state.acknowledged ? 'recorded' : 'not recorded'}</strong></p>
           <p className="mt-2 text-[11px] text-slate-400">
