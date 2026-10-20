@@ -44,7 +44,7 @@ Instrumentation engineers still spend significant time translating P&IDs into ta
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24.15+ (24.22.0 pinned in .nvmrc)
 - npm
 - A Google AI Studio API key
 
@@ -102,7 +102,7 @@ npm start
 
 ```bash
 npm run eval:preflight
-VISION2DCS_EVAL_MAX_CALLS=2 npm run eval  # Example: explicitly allow 2 paid fixtures
+VISION2DCS_EVAL_MAX_CALLS=10 npm run eval  # Explicitly allow the complete ten-fixture paid evaluation
 ```
 
 The benchmark prints per-sample missed and unexpected tags plus overall tag precision, recall and F1, and signal/block type accuracy on the matched tags. The synthetic fixtures also label **directed dashed instrument signal lines** in `signalConnections`. The runner prints separate edge precision, recall and F1 from model-generated `connectedTo` references, counting missed, reversed, dangling and spurious links. This excludes automatically inferred React Flow loop chains and unlabelled process piping. Topology-aware evaluations are persisted in **schema-v2** reports containing per-sample and microaveraged tag and directed-signal metrics. Historical **schema-v1** tag-only reports remain readable and comparable to other v1 reports; mixed v1/v2 comparisons fail explicitly. CI validates reporting offline but never makes billable Gemini calls. On successful completion it retains a unique report in **`eval/results/runs/`** and atomically updates **`eval/results/latest.json`** with model identifier, timestamp, per-sample input SHA-256 hashes and microaveraged metrics, so successive results can be inspected against the exact source drawings and labels. This file is ignored by Git and is **not** a synthetic score or automatic CI output. Running `npm run eval` makes real, potentially billable Gemini calls. The runner now validates **every fixture, expected tag, complete PNG chunk structure and CRC, drawing size and directed-signal annotation before any provider call**. It also requires explicit `VISION2DCS_EVAL_MAX_CALLS` (positive integer, no more than 100, covering the complete fixture set) in addition to `GEMINI_API_KEY`; incomplete or corrupt later examples cannot waste paid calls on earlier fixtures. Use `npm run eval:preflight` for a fully offline, free check. Per-process and provider-level spending controls remain separate; actual billing and vendor data are never fabricated by CI. CI tests the offline report builder and the same full-fixture preflight logic used by manual paid evaluation, but never calls Gemini. To add a case, create `samples/<name>/` with a `drawing.png` and an `expected.json` that follows the existing ones. A field may list several accepted values, for example a controller as `["AI", "AO"]`.
@@ -174,3 +174,7 @@ The public demo now includes a **flow-control** reference (5 instruments, 2 anno
 ### Scientific evidence inventory (zero API calls)
 
 Run `npm run eval:inspect` for a source-hashed JSON inventory of all real checked-in synthetic P&ID fixtures: number of independent drawings, independently labelled tags and drawn directional signal links, signal/block coverage and ambiguous reference types. The output explicitly declares itself **unscored** and identifies insufficient independent drawing coverage. No AI metric is invented and no API key is needed. `npm run eval:preflight` now requires complete signal and PCS7 reference classifications before any paid call, and the scorer no longer awards correct classifications for missing ground-truth labels. Statistical generalization and real-model precision/recall remain unverified until independent drawings and authorized Gemini runs are available.
+
+### Synthetic scientific challenge expansion
+
+The source-controlled benchmark now has **ten synthetic drawings** (two initial hand-authored drawings and eight black-and-white procedural variants for flow, pressure, temperature and level loops). Each fixture contains an editable SVG source, complete PNG raster, engineer-style label JSON and annotated directed signal edges. The eight generated cases share a visual style, so they do not constitute independent industrial P&ID evidence. Passing test cases **does not measure Gemini accuracy**. See [Research evidence limits](docs/RESEARCH_EVIDENCE.md); use `npm run eval:inspect` to retrieve source-hashed inventory with no model calls. Real AI evaluation requires an explicit paid-run budget for all 10 fixtures.

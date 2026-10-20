@@ -17,8 +17,26 @@ describe('benchmark samples', () => {
       item.expectedSha256.length === 64 && item.signalConnections.length > 0)).toBe(true);
   });
 
-  it('exist', () => {
-    expect(samples.length).toBeGreaterThan(0);
+  it('contains ten validated synthetic cases with mixed analog and discrete types', async () => {
+    expect(samples.length).toBeGreaterThanOrEqual(10);
+    const prepared = await prepareBenchmarkSamples(samplesDir);
+    const classes = new Set(prepared.flatMap(item => item.instruments.flatMap(inst =>
+      Array.isArray(inst.signalType) ? inst.signalType : [inst.signalType])));
+    for (const klass of ['AI', 'AO', 'DI', 'DO']) expect(classes.has(klass)).toBe(true);
+    expect(prepared.reduce((n, item) => n + item.signalConnections.length, 0)).toBeGreaterThanOrEqual(20);
+  });
+
+  it('preserves vector source text corresponding to every generated raster gold tag', () => {
+    for (const name of samples.filter(item => item.startsWith('synthetic-'))) {
+      const folder = path.join(samplesDir, name);
+      const svg = readFileSync(path.join(folder, 'drawing.svg'), 'utf8');
+      const gold = JSON.parse(readFileSync(path.join(folder, 'expected.json'), 'utf8')) as {
+        instruments: { tagName: string }[];
+      };
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('stroke-dasharray');
+      for (const inst of gold.instruments) expect(svg).toContain(inst.tagName);
+    }
   });
 
   it.each(samples)('%s has a drawing and a valid expected.json', name => {
