@@ -1,5 +1,5 @@
 import { validateBenchmarkReport } from './compare';
-import type { BenchmarkReport } from './report';
+import type { BenchmarkReport, BenchmarkTopologySample } from './report';
 import type { SampleScore } from './score';
 import type { TopologyScore } from './topology';
 
@@ -109,9 +109,8 @@ export function diagnoseBenchmarkReport(input: unknown): BenchmarkDiagnostics {
       },
     };
     if (report.schemaVersion === 2) {
-      const match = report.samples.find(candidate => candidate.name === sample.name);
-      // report.samples is validated as a homogeneous v2 collection.
-      const s = (match as (typeof report.samples)[number]).topologyScore;
+      // The schema discriminator guarantees that every v2 sample has topology counts.
+      const s = (sample as BenchmarkTopologySample).topologyScore;
       output.topology = {
         expected: s.expected, extracted: s.extracted, matched: s.matched,
         metrics: scoreTopology(s),
