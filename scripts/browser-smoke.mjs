@@ -96,6 +96,32 @@ try {
   await page.getByText('Inferred layout only').waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'P&ID View' }).click();
 
+  // Entirely local and keyboard-driven alarm learning experience. No AI call,
+  // control API or vendor interface may be contacted by this teaching screen.
+  await page.getByRole('button', { name: 'Training Lab' }).click();
+  const training = page.getByRole('region', { name: 'Offline cause and effect lab' });
+  await training.waitFor({ state: 'visible' });
+  const level = training.getByRole('slider', { name: /LT-201/ });
+  await level.focus();
+  await level.press('End');
+  if (!(await training.getByText('Trip latch:', { exact: false }).textContent()).includes('ACTIVE')) {
+    throw new Error('High synthetic level failed to set the local trip latch.');
+  }
+  await training.getByRole('button', { name: 'Acknowledge local alarm' }).click();
+  if (!(await training.getByText('Trip latch:', { exact: false }).textContent()).includes('ACTIVE')) {
+    throw new Error('Acknowledgement improperly cleared a synthetic trip latch.');
+  }
+  await level.press('Home');
+  await training.getByRole('button', { name: 'Attempt simulated reset' }).click();
+  if (!(await training.getByText('Trip latch:', { exact: false }).textContent()).includes('clear')) {
+    throw new Error('Clear-range reset did not release the local synthetic latch.');
+  }
+  await training.getByLabel('Inject synthetic sensor fault').check();
+  await training.getByText('UNKNOWN', { exact: true }).waitFor({ state: 'visible' });
+  await training.getByRole('button', { name: 'Reactor feed flow' }).click();
+  await training.getByRole('slider', { name: /FT-101/ }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Tag Management' }).click();
+
   // Destructive row operations must not execute when consent is dismissed.
   page.once('dialog', dialog => dialog.dismiss());
   await page.getByRole('button', { name: 'Delete FIC-101' }).click();
