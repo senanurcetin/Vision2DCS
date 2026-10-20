@@ -91,7 +91,7 @@ export const projectReducer = (state: ProjectState, action: ProjectAction): Proj
  */
 export const useProjects = () => {
   const storage = useMemo(getBrowserStorage, []);
-  const [state, dispatch] = useReducer(projectReducer, storage, browserStorage => {
+  const [state, dispatch] = useReducer(projectReducer, storage, (browserStorage): ProjectState => {
     const projects = loadProjects(browserStorage);
     return {
       projects,
