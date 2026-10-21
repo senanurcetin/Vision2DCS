@@ -1,13 +1,13 @@
 # Vision2DCS Technical Architecture
 
-## 🧠 AI Strategy: Multimodal Extraction
+## Multimodal extraction strategy
 
 The core of the application lies in `server/gemini.ts`. Instead of simple OCR, we use **Multimodal Prompting**:
 - **System Instruction**: We prime the model as a "Lead DCS Architect" to ensure technical vocabulary (e.g., "Engineering Units", "Solenoid", "Diaphragm Actuator").
 - **Schema Enforcement**: We use the Gemini `responseSchema` to force the model to return valid JSON that maps directly to our `Instrument` interface.
 - **Contextual Inference**: The model doesn't just read text; it infers "connectedTo" relationships based on the visual proximity of equipment in the P&ID.
 
-## 🔐 Server Boundary
+## Server Boundary
 
 All Gemini calls run on the server so the API key never reaches the browser. **Live model calls are fail-closed**: `VISION2DCS_ENABLE_AI=true`, a distinct server-side 32+ character `VISION2DCS_AI_ACCESS_TOKEN`, and a configured `GEMINI_API_KEY`, and a positive per-process `VISION2DCS_AI_MAX_REQUESTS` (1–1000) are all required. Users enter the operator access token manually per browser tab; it stays in volatile JavaScript memory, not stored projects. The Node adapter forwards the bearer header; the server verifies a SHA-256 digest using `timingSafeEqual` before JSON parsing, rate limiting or Gemini calls. Disabled endpoints return 503, invalid token requests return 401. This is a shared-secret demo boundary, not identity-based authentication or a spending cap. The invocation allowance is reserved synchronously only after input validation and before a provider call, is never refunded on provider error, and lasts until process restart. A synchronous in-flight concurrency gate limits AI calls to two at a time by default (configurable 1–8 using `VISION2DCS_AI_MAX_CONCURRENT`), returns HTTP 429 if full without spending another invocation allowance, and releases slots in `finally`. The application-level retry loop is disabled so one allowance cannot launch three explicit Gemini calls. It is **not** a monetary cap: provider retries, multiple server processes and restarts require authoritative upstream quotas. Remote deployments still require TLS, trusted ingress and provider budget controls.
 
@@ -19,26 +19,26 @@ All Gemini calls run on the server so the API key never reaches the browser. **L
 - `server/node.ts` adapts the handler to Node's `http` module with a 15 MB body limit, rejecting over-limit Content-Length declarations without first buffering a payload. API JSON replies are marked `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`; unknown/chunked-length bodies are rejected as soon as the 15 MB streaming threshold is crossed, without waiting for the client to finish transmitting. Aborted or prematurely closed HTTP uploads reject the outstanding body-read promise; the adapter avoids writing error responses to destroyed sockets. Early Node-level API errors include no-store and nosniff headers. It is mounted by `server/vitePlugin.ts` for `vite` and `vite preview`, and by `server/httpServer.ts` for `npm start`. The production server also serves `dist/` with an SPA fallback.
 - `services/geminiService.ts` is the thin browser client for these routes.
 
-## 🕸 Topology Engine (React Flow)
+## Topology engine (React Flow)
 
 Mapping a 2D image back to a node-based graph:
 1. **Loop Parsing**: `services/tagParser.ts` splits a tag into function letters, loop number and suffix. The loop is the first (measured-variable) letter plus the number, so `FT-101` and `FCV-101` share loop `F-101` while `TT-101` is loop `T-101`.
 2. **Grouping and ordering** (`services/topologyLayout.ts`): instruments with the same loop key are clustered into `loopGroup` nodes and ordered by role: measurement first, then controller (`PIDConL` or a `C` after the measured-variable letter, e.g. `FIC`), then final element (valves, AO/DO, motors). The model's own output order no longer decides the layout.
 3. **Signal lines**: gray dashed edges illustrate inferred loop-order chains only, while solid cyan lines show individually resolved declared `connectedTo` links. A declared direction overrides the opposing inferred layout for the same pair. Missing, ambiguous, self-referential or cyclic declared connections raise OT-Sentinel blockers. The editor supports one outgoing connection per instrument, not a complete physical topology graph.
 
-## 🖼 Upload and Persistence
+## Upload and persistence
 
 - **Upload** (`services/imageUpload.ts`): only JPEG, PNG and WebP files up to 25 MB are accepted. Drawings larger than 2048 px on the longest side are downscaled in the browser, keeping their format so line work stays crisp, before they are sent to `/api/analyze`.
 - **History** (`hooks/useProjects.ts`, `services/projectStore.ts`): projects are kept in `localStorage`. Every change is a functional state update, so an analysis that finishes late cannot overwrite newer edits. Saved project records now validate instrument field types, row count and duplicate identities; corrupted records are skipped **as a whole** so no instrument silently disappears. Unsafe external/SVG image URLs are cleared, and repeated project IDs are ignored. Previously recorded local review flags remain local editor state, not signed approval. When the browser refuses to save because its quota is full, the app shows a warning instead of failing silently. Projects can be renamed and deleted from History.
 
-## 🛡 OT-Sentinel Audit Logic
+## OT-Sentinel audit logic
 
 The audit engine (`otSentinelService.ts`) performs these checks:
-1. **Syntactic**: Does the parsed tag conform to ISA naming constraints `[Letters]-[Number][Suffix]` (e.g. `PT-101A`)? Validation canonicalizes case, surrounding whitespace and an optional separator before applying the constraints.
-2. **Classification**: Did the model return a signal or block type that could not be mapped (`Unknown`)? These need manual assignment before export.
-5. **Duplicate identity**: Canonicalized instrument tags (case, optional separators/whitespace) must be unique across the project; repeated equipment identities receive an error before anyone relies on the conceptual exports. The audit does not claim a SIL/standards certification.
-3. **Functional**: Does an analog signal (AI/AO) lack engineering units? Does the description mention a safety function (relief, ESD, interlock...) that needs IEC 61511 / SIL review?
-4. **Topology**: Does a flow loop (`F-...`) contain an analog input but no final control element (an AO signal or a tag whose function letters end in `V`)?
+1. **Syntactic:** ISA-like tag form `[Letters]-[Number][Suffix]`, e.g. `PT-101A`; accepts certain canonicalized separators without certifying ISA-5.1 conformity.
+2. **Classification:** Unknown or incompatible signal type / conceptual block mappings are visible; unknown classifications block reviewed concept export.
+3. **Duplicate identity:** Repeated canonical instrument tags or ambiguous row IDs are errors, not automatically resolved.
+4. **Functional:** Missing analog engineering units or descriptions hinting at relief, ESD and interlock merit human review; simple text heuristics do not determine SIL.
+5. **Topology:** Missing loop elements, unresolved or cyclic `connectedTo` references, invalid sources and targets trigger conservative findings. HMI inferred gray edges remain strictly separate from validated cyan declared links.
 
 ## Consistent read-only safety findings
 
@@ -56,13 +56,13 @@ Backup export and import share the stored-project typed-field validator. Every i
 
 `services/normalizeInstruments.ts` validates the model's JSON before it reaches the UI. Malformed or non-array responses are rejected with a clear error. A non-object row anywhere in a model-generated array also rejects the entire response, rather than silently discarding a potentially important instrument. Valid object rows still retain unknown classifications as low-confidence findings. Signal or block types outside the supported set become `Unknown` with `low` confidence instead of being silently replaced with a default, and a missing confidence also counts as `low`.
 
-## 📏 Evaluation
+## Evaluation
 
 `npm run eval` (`eval/run.ts`) sends each `samples/<name>/drawing.png` through the same `server/gemini.ts` path the app uses and scores the result against `expected.json` (`eval/score.ts`):
 - **Tag matching** is format-insensitive, so `FT101`, `FT 101` and `FT-101` count as the same tag. Precision and recall are micro-averaged over all samples.
 - **Signal and block type accuracy** are measured on matched tags only. An expected field may list several acceptable values.
 
-The samples are synthetic drawings authored for this repository (SVG sources included), so they can be shared and extended freely. Their `signalConnections` labels identify directed, actually drawn *instrument signal* lines only. `eval/topology.ts` separately microaverages directed edge precision/recall/F1 using canonical tag identities, treating missing, reversed, dangling and self-links as errors. The visualization engine's inferred loop chains and physical pipe connectivity are not labelled signal edges. Topology results are printed and retained in **schema-v2** reports containing per-sample directed-signal counts and independent microaveraged topology precision/recall/F1. The report validator checks each metric family against its stored counts, preserves source drawing/label hashes and refuses cross-version comparisons. Legacy schema-v1 reports remain tag-only. No model performance claim is made without a real evaluation.
+The checked-in samples are synthetic drawings authored for this repository (SVG sources included); this does not grant the right to republish independent third-party industrial P&IDs. Their `signalConnections` labels identify directed, actually drawn *instrument signal* lines only. `eval/topology.ts` separately microaverages directed edge precision/recall/F1 using canonical tag identities, treating missing, reversed, dangling and self-links as errors. The visualization engine's inferred loop chains and physical pipe connectivity are not labelled signal edges. Topology results are printed and retained in **schema-v2** reports containing per-sample directed-signal counts and independent microaveraged topology precision/recall/F1. The report validator checks each metric family against its stored counts, preserves source drawing/label hashes and refuses cross-version comparisons. Legacy schema-v1 reports remain tag-only. The read-only `eval:diagnose` command additionally recomputes **per-drawing** tag precision/recall/F1, classification agreement and (for v2) directed-link metrics, showing macro means and denominator coverage. The `Research Evidence` browser tab accepts a local saved report up to 8 MiB and rejects malformed or forged summaries; it does not authenticate the report's authorship. No Gemini performance claim is made without a real, authorized model evaluation.
 
 ## Gemini SDK 2.x contract and image output
 
@@ -75,7 +75,7 @@ Tag edits, manual additions and deletions are recorded in a bounded 30-step, per
 ## Manual editing and backup
 A review-required low-confidence instrument can be added to the table. The BOM export reuses existing spreadsheet formula-injection prevention for all text cells; costs remain estimates. Versioned JSON project backups use the same 48 MiB UTF-8 cap on import and export, including a pre-read File.size check and an explicit error for oversized exports, parsed and normalized before adding a new project ID. Only base64 PNG/JPEG/WebP inline images are retained. Any non-object instrument row blocks both backup import and serialization to prevent a silently incomplete engineering record; valid records still undergo normalization and lose untrusted review flags. No vendor import claim is implied.
 
-## 📊 Export Mappings
+## Concept export mappings
 
 > **Concept formats.** Both exports are illustrative layouts. They have not been validated against the real Siemens PCS 7 (Import/Export Assistant) or ABB 800xA (Bulk Data Manager) import schemas, so treat them as a starting point for an engineering tool chain, not as files to load into a live system.
 
@@ -95,9 +95,9 @@ Export builders live in `services/exportService.ts` and are covered by unit test
 ### ABB 800xA
 Generates a structured XML fragment where each instrument is assigned an `AspectObject` type based on its signal characteristics.
 
-## Node runtime baseline (toolchain upgrade phase 1)
+## Node runtime and pinned toolchain
 
-Use Node 24 LTS, minimum v24.15.0 and pinned v24.22.0 for reproducible GitHub Actions, CircleCI, browser smoke and local `.nvmrc`. `package.json` and root `package-lock.json` engine metadata agree. This stage does not upgrade Vite, Vitest, vite-node or jsdom and intentionally leaves all transitive lockfile entries unchanged. Advance those coordinated toolchain changes only in later tested PRs. Any runtime mismatch must fail the dependency/CI checks; never skip safety tests to merge.
+Use Node 24 LTS, minimum v24.15.0 and pinned v24.22.0 for reproducible GitHub Actions, CircleCI, browser smoke and local `.nvmrc`. `package.json` and the lockfile engine metadata agree. Current dependencies remain on the tested **Vite 6**, **@vitejs/plugin-react 5**, **Vitest/vite-node 3** and **jsdom 26** generations; this is not a claim that the separate major-upgrade work in issue #50 is complete. Any coordinated upgrade requires a new locked install, TypeScript, tests, SSR build, browser verification and vulnerability audit.
 
 ## Research evidence and reproducibility
 
@@ -106,3 +106,13 @@ The ten-drawing synthetic corpus now has source SVGs, validated PNGs and hand-au
 ### Additional classification advisory
 
 OT-Sentinel now compares assigned AI/AO/DI/DO signal class against a small **illustrative** MonAnL/MonDiL/MotL/VlvL/VlvAnL/PIDConL block mapping table. Inconsistent classifications raise advisory warnings and are never auto-corrected. These mappings are conceptual shorthand and must not be treated as a verified Siemens PCS7 import schema or a plant safety assessment. Existing human review and critical topology blockers remain authoritative for concept exports.
+
+## Dedicated offline research demonstration modules
+
+- **Synthetic cause/effect training:** `services/causeEffectDemo.ts` and `components/CauseEffectDemo.tsx` implement two invented educational level/flow alarms. A trip remains latched after acknowledgement and may reset only with a healthy sensor within the clear range. Faulted readings are `UNKNOWN`; no network, PLC output, process dynamics model or IEC 61511 assertion exists.
+- **Research Evidence:** `eval/diagnostics.ts`, `eval/compare.ts` and `components/BenchmarkEvidenceViewer.tsx` validate user-supplied report samples and summarize micro/macro metrics. Source SHA-256 identifies bytes, not the identity of an annotation author or model provenance. Real unverified CI tests never substitute for actual image inference.
+- **Measured Tesseract OCR:** `eval/ocr-cli.ts` executes installed system Tesseract on preflight-verified **PNG bytes**, not SVG/expected-label text, records the engine version in an immutable source-hashed v1 report and does not call Gemini. [Main-head measured OCR run 39515173658](https://github.com/senanurcetin/Vision2DCS/actions/runs/39515173658) recorded **52.94% precision / 19.15% recall / 28.13% F1** for **tag detection only** across 10 correlated synthetic cases. Classification/topology are **not predicted** by this OCR baseline.
+- **Exact-paired tag comparison:** `eval:compare-tags` permits v1-v2 comparison **only** for tag detection precision/recall/F1 with matching drawing and label SHA-256; broader `eval:compare` remains same-schema. Neither compares absence of OCR topology predictions as model error or computes statistical significance.
+- **Reproducible scan stress:** `services/scanStress.ts` and `components/ScanStressLab.tsx` apply bounded seeded RGBA noise/occlusions to a **copy** of locally embedded drawing pixels. The displayed SHA-256 values are **rendered RGBA hashes**, not PNG file hashes, and the operation produces no OCR/model accuracy measurements. Input projects are not rewritten.
+
+See [Evidence Matrix](docs/DEMO_EVIDENCE_MATRIX.md) and [Research Evidence](docs/RESEARCH_EVIDENCE.md) for the boundary between implemented features, actual model measurements and still-unperformed independent experiments.

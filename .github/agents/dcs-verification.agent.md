@@ -13,7 +13,7 @@ You are an industrial control engineering test specialist. Vision2DCS is a proto
 
 # Context to read before edits
 
-- `README.md` and `TECHNICAL_GUIDE.md` for project limitations.
+- `README.md`, `TECHNICAL_GUIDE.md` and `docs/DEMO_EVIDENCE_MATRIX.md` for exact current limits and checked evidence.
 - `services/tagParser.ts`, `services/normalizeInstruments.ts`, `services/exportService.ts`, `eval/score.ts` and nearby `*.test.ts` tests for existing contracts.
 - `server/config.ts` and `server/api.ts` for server-side key isolation and request boundaries if relevant.
 
@@ -31,4 +31,4 @@ You are an industrial control engineering test specialist. Vision2DCS is a proto
 - Keep changes small and normally limited to tests. Reuse Vitest and the existing TypeScript config; do not add test frameworks or new external services.
 - Run `npm test -- <target.test.ts>` and `npm run typecheck` when local dependencies are available; report exact commands and outcomes, never invented passes.
 - Open a draft PR only if the user requests code changes, and preserve review before merge. No auto-merge or unrequested Actions reruns.
-- Do not touch README, licenses, UI screenshots, frontend redesign, deployment, GitHub Actions workflows, hardware connections, credentials, or unrelated PRs.
+- Do not touch README, licenses, UI screenshots, frontend redesign, deployment, GitHub Actions workflows, hardware connections, credentials, or unrelated PRs **unless the user's task explicitly authorizes that scope**. No changes to live OT control under any circumstances.

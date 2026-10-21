@@ -1,17 +1,19 @@
 # Vision2DCS — NEXUS Advanced Research-Demo Evidence Matrix
 
-**Baseline:** GitHub `main` at `fa571d882c4ad94e1748fd3dca3fde8a2751f925` (21 October 2026).  
+**Engineering evidence baseline:** checked against GitHub `main` at `9a2e51757ce6a06643e1f460fe5678f9480c5f33` (21 October 2026); this document is an evidence register, not a claim that the branch will always remain at that commit.  
 **Scope:** Industrial automation **research and educational portfolio demo**, **not** a commercial product, validated engineering deliverable, plant controller or vendor-native import system.
 
 This document separates **implemented software**, **tested behavior**, **measured scientific performance**, and **unsupported claims**. A passing unit test never proves real P&ID extraction accuracy, safety integrity, independent labels or interoperability.
+
+**Documentation maintenance:** [Contributing](../CONTRIBUTING.md) describes the offline `npm run docs:check` integrity command. Its GitHub Actions and CircleCI gates verify internal Markdown file/headline references, not the live validity of external sites or the provenance of AI experiments.
 
 ## Verification references
 
 | Evidence | Exact verification |
 |---|---|
-| Main quality CI | [Main-head run 39515173659](https://github.com/senanurcetin/Vision2DCS/actions/runs/39515173659): locked install, production dependency audit, TypeScript, Vitest, PNG/gold-label preflight, scientific corpus inspection, web/SSR build |
+| Main quality CI | [Main-head run 39516571475](https://github.com/senanurcetin/Vision2DCS/actions/runs/39516571475): locked install, production dependency audit, TypeScript, Vitest, PNG/gold-label preflight, scientific corpus inspection, web/SSR build |
 | Real OCR research run | [Main-head run 39515173658](https://github.com/senanurcetin/Vision2DCS/actions/runs/39515173658): Tesseract system package, exact PNGs, source-hashed tag-only report, local diagnostic validation and 7-day evidence artifact |
-| Developer/public browser interaction | [PR #90 Chromium smoke run 39514410704](https://github.com/senanurcetin/Vision2DCS/actions/runs/39514410704): synthetic project, export review gate, no `/api` calls, cause/effect keys and reset, source-hashed report accept/reject, responsive viewports |
+| Developer/public browser interaction | [PR #93 Chromium smoke run 39516364508](https://github.com/senanurcetin/Vision2DCS/actions/runs/39516364508): synthetic project, export review gate, no `/api` calls, cause/effect keys and reset, source-hashed report accept/reject, reproducible scan stress, responsive viewports |
 | Critical HMI wiring guard | [PR #87](https://github.com/senanurcetin/Vision2DCS/pull/87): tested ambiguous/duplicated identities, fail-closed declared edges |
 | Drawing-level diagnostics | [PR #86](https://github.com/senanurcetin/Vision2DCS/pull/86): source-hashed per-drawing macro scoring and empty-denominator semantics |
 | Offline educational logic | [PR #89](https://github.com/senanurcetin/Vision2DCS/pull/89): pure local alarm state machine with fault-as-UNKNOWN and explicit clear-range reset |
@@ -22,7 +24,8 @@ This document separates **implemented software**, **tested behavior**, **measure
 
 | Capability | State | Evidence within repository | Boundary |
 |---|---|---|---|
-| Official NEXUS identity and responsive UI | **IMPLEMENTED; smoke tested** | `public/nexus-x.svg`, `index.css`, `App.tsx`; Chromium desktop/tablet/mobile screenshots | Browser smoke is not a complete WCAG audit or visual design research |
+| Official NEXUS identity and responsive UI | **IMPLEMENTED; browser tested and captured** | `public/nexus-x.svg`, `index.css`, `App.tsx`; real `docs/assets/nexus-workspace-*.png`, `nexus-hmi-topology.png`, `nexus-training-lab.png`, `nexus-scan-stress.png` | Screenshot and smoke evidence is not a complete WCAG audit or a vendor/plant usability validation |
+| Real Chromium screenshot capture | **IMPLEMENTED; dedicated job passed** | `.github/workflows/nexus-readme-screenshots.yml`, `scripts/capture-readme.mjs` and committed `docs/assets/nexus-*.png` | Source-controlled synthetic examples only; no paid AI or observed plant signals |
 | Offline sample P&IDs | **IMPLEMENTED; smoke tested** | `services/offlineDemo.ts`; `services/offlineDemo.test.ts` | All labels synthetic, unreviewed by default; no model extraction is implied |
 | Source-bounded project/backup lifecycle | **IMPLEMENTED; tested** | `services/projectStore.ts`, `services/projectBackup.ts` and tests | Local browser storage is not a secure enterprise or audited document vault |
 | Explicit local engineering review & revocation | **IMPLEMENTED; tested** | `services/reviewState.ts`, `services/conceptExportGate.ts`, browser export/review smoke | A local boolean is not a signed engineering approval |

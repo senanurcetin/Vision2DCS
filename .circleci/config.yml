@@ -37,6 +37,9 @@ jobs:
           name: Inspect unscored fixture coverage (no AI)
           command: npm run eval:inspect
       - run:
+          name: Check Markdown links and headings
+          command: npm run docs:check
+      - run:
           name: Client and SSR production builds
           command: npm run build
 

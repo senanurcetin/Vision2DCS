@@ -19,7 +19,8 @@
     "eval:inspect": "vite-node eval/inspect-cli.ts",
     "eval:diagnose": "vite-node eval/diagnostics-cli.ts",
     "eval:ocr": "vite-node eval/ocr-cli.ts",
-    "eval:compare-tags": "vite-node eval/compare-tags-cli.ts"
+    "eval:compare-tags": "vite-node eval/compare-tags-cli.ts",
+    "docs:check": "node scripts/check-docs.mjs"
   },
   "dependencies": {
     "@google/genai": "2.29.1",

@@ -38,7 +38,7 @@ body:
     id: checks
     attributes:
       label: Verification
-      description: Node version; npm test, typecheck, build results if available
+      description: Node 24 version; exact npm test, typecheck, docs:check, browser and build results if available
     validations:
       required: false
   - type: checkboxes

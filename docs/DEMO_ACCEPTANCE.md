@@ -2,25 +2,27 @@
 
 For claim-level evidence and current scientific limits, see [DEMO_EVIDENCE_MATRIX.md](DEMO_EVIDENCE_MATRIX.md).
 
-Scope: a **local, read-only engineering concept demo**, not certified industrial
-control software or a vendor-ready PCS 7 / ABB import. No live PLC, plant network,
-automatic GitHub deployment, model API payment or operator secrets are needed.
+Scope: an **offline, locally editable engineering concept and research demo**, not certified industrial control software or vendor-ready PCS 7 / ABB import. The static public demo needs no live PLC, plant network, paid model API or operator secret. Local edits, review flags and downloads **do not** authorize plant operations.
+
+## Documentation truthfulness
+
+For the precise implemented/tested/measured distinctions, consult [DEMO_EVIDENCE_MATRIX.md](DEMO_EVIDENCE_MATRIX.md). A screenshot or green unit test is **not** evidence of actual Gemini accuracy, an independent P&ID drawing corpus, human label adjudication, a signed review or certified PCS7/ABB import. The 2026-10-21 Tesseract OCR run *does* constitute measured **tag-only OCR** evidence on correlated synthetic fixtures.
 
 ## Reproducible exact-head checks
 
-Run with locked dependencies and a supported Node.js environment:
+Run with locked dependencies and Node.js **24.15+** (pinned **24.22.0**). These commands have no paid model calls:
 
 ```sh
 npm ci --no-audit --no-fund
 npm run typecheck
 npm test
 npm run eval:preflight
+npm run eval:inspect
+npm run docs:check
 npm run build
 ```
 
-Pull-request GitHub Actions and CircleCI supply independent evidence. The
-offline Chromium browser-smoke job additionally checks synthetic backup import,
-explicit review before concept exports, responsive layout and token handling.
+GitHub Actions CI enforces the locked build, typecheck, tests, reference preflight and unscored inventory. CircleCI includes comparable checks when triggered on the connected repository. The separate offline Chromium workflow checks synthetic backup import, review/export gates, responsive layout, operator-token handling, local training, report integrity and seeded image degradation; a successful browser smoke is not a real vendor import test.
 
 ## Manual demo walk-through
 
@@ -62,12 +64,11 @@ human engineering review, SIL certification, or production-grade internet
 authentication / provider billing controls. Real vendor validation (#2),
 engineering sign-off and secure TLS identity ingress remain separate gates.
 
-Do not merge this integration PR into a production/deployment branch based
-solely on an offline smoke test.
+Demo PRs require exact-head validation before merge. Never interpret these software checks as approval for a plant deployment; **operational deployment is outside this project's demo scope**.
 
 ## Public demo UX and deployment environment
 
-The dedicated static Vercel project (`vision2dcs-nexus-demo`) builds with
+The public static NEXUS Vercel demo (`vision2dcs-nexus-demo`) builds with
 `VITE_VISION2DCS_PUBLIC_DEMO=true` for production and preview deployments.
 This is a public non-secret build flag; it hides inoperative Gemini token,
 upload-to-AI and digital-twin actions on a frontend-only host. It does not
@@ -76,7 +77,7 @@ existing synthetic flow-control fixture. Local dev/Node builds omit the flag
 and preserve guarded AI functionality. The browser smoke workflow runs
 both `developer` and `public` jobs to prevent mode regressions.
 
-## Review and project integrity (vNext)
+## Review and project integrity
 
 The project reducer refuses duplicate IDs rather than overwriting an earlier
 engineering project. Browser-generated project, demo and manual-row IDs carry

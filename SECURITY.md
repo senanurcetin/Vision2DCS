@@ -1,27 +1,31 @@
-# Security Policy
+# Vision2DCS security and disclosure
 
-Vision2DCS is an experimental P&ID-to-HMI engineering assistant. It is **not** a production-certified DCS/PLC integration, control application, or safety instrument.
+Vision2DCS is a **synthetic, educational industrial engineering research demo**, not a deployed process controller, certified safety system or vendor-supported PLC/DCS integration. No security SLA or formally supported release channel is offered.
 
-## Private vulnerability reporting
+## Report a concern privately
 
-Send a private report to **senanur.cetin.work@gmail.com** with subject `[Vision2DCS security]`. Include the affected branch or commit, expected impact, and steps to reproduce with harmless synthetic inputs. Never put tokens, proprietary plant diagrams, credentials or exploitable information in public issues.
+Email **senanur.cetin.work@gmail.com** with the subject `[Vision2DCS security]` and a concise description, affected commit, impact and steps to reproduce with synthetic inputs. Do not publish operator tokens, API keys, proprietary process drawings, confidential data or active exploit payloads in issues.
 
-There is no guaranteed security response SLA or supported release schedule for this demonstration.
+## What is and is not exposed
 
-## Data handling boundaries
+- **Static public demo:** The advertised [offline NEXUS demo](https://vision2dcs-nexus-demo.vercel.app/) uses the `VITE_VISION2DCS_PUBLIC_DEMO=true` build flag. It exposes sample P&IDs and local browser features **without working paid AI routes**. Its presence does not imply hosted Gemini inference.
+- **Optional local/Node API:** Gemini requests are server-side and **disabled by default**. Explicit `VISION2DCS_ENABLE_AI=true`, `GEMINI_API_KEY`, a separately generated 32+ character `VISION2DCS_AI_ACCESS_TOKEN`, and a positive per-process `VISION2DCS_AI_MAX_REQUESTS` are required. The shared token is transmitted as a bearer token and is held only in the browser tab's volatile memory.
+- **Limits, not guarantees:** The server enforces request/image bounds, raster signature checks, early authorization, in-memory per-client rate limits and reserved provider-invocation budgets. **A shared operator secret is not user identity management; an in-process budget is not a provider monetary cap.** Provider-side quotas, secure TLS termination, audited identity-aware ingress and multi-instance coordination are external requirements before any public paid API use.
+- **Client-side state:** Edited projects and drawing images can be stored in local browser storage. Do not assume encryption, guaranteed persistence, multi-user isolation or enterprise auditability. Research report imports and simulated alarm event traces are not uploaded by the demo UI.
+- **Model/output trust:** Extracted tags, conceptual links, costs, warnings and digital twin imagery can be incorrect. Export eligibility only means local validation and review checks passed; it never certifies ISA/IEC compliance or a vendor import.
 
-- A P&ID may expose sensitive process topology, equipment information or plant operations. Use only diagrams you own or have permission to process.
-- Analyze requests are sent to an external AI provider (Google Gemini). Do not upload proprietary or confidential plant documents without the required contractual, organizational and privacy approvals.
-- The `GEMINI_API_KEY` must remain server-side. Never put it in client code, `VITE_*` environment variables, screenshots, issue payloads or version control.
-- Model-generated tags, loop links, bill of materials and HMI layouts may be incomplete or incorrect. Independently validate them against approved engineering drawings and vendor specifications before any operational use.
-- The public demo/server has no end-user authentication and a process-local rate limiter; do not expose it to untrusted production networks without independent hardening.
+## Disclosure and engineering privacy
 
-## Security development checklist
+Use only owned or explicitly permissioned diagrams. A real plant P&ID may reveal process topology or confidential operating details. Obtain organizational, contractual, privacy and safety approvals before using any external AI provider; neither the GitHub synthetic fixtures nor the browser demo grant permission to upload plant drawings.
 
-- Validate and bound file uploads and third-party/model outputs.
-- Preserve the browser/server boundary: no imports of `server/` from client code.
-- Do not log API keys or full uploaded diagram contents.
-- Avoid unsafe dynamic evaluation and keep third-party dependencies patched.
-- Test changes with synthetic P&IDs, not real customer drawings.
+The source and offline samples never give permission to send live PLC/DCS commands, read plant telemetry or make unattended actuator/setpoint changes. Vendor-style Siemens PCS 7 CSV and ABB 800xA XML must **not** be treated as import-ready engineering files.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for test commands and key-boundary checks.
+## Maintainer security checklist
+
+- Verify MIME, size, PNG/JPEG/WebP signatures, canonical base64 and untrusted JSON before any potentially paid model call.
+- Never check secrets into Git, client bundles, `VITE_*` variables, logs, screenshots or test artifacts.
+- Reject duplicate instrument identities and unresolved directed signal references before reviewed concept export.
+- Do not treat mock-provider Vitest results, OAuth-free shared secrets, OCR scores on synthetic samples or browser smoke as an operational security certification.
+- Keep dependencies current, run locked CI and audit production dependencies before reviewing a PR.
+
+For details see [Technical Guide](TECHNICAL_GUIDE.md), [Contributing](CONTRIBUTING.md) and [Evidence Matrix](docs/DEMO_EVIDENCE_MATRIX.md).

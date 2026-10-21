@@ -1,49 +1,56 @@
+/** Capture *actual* Chromium screens from bundled synthetic exercises.
+ * No mock tag injection, no paid API, no plant data and no README text mutation.
+ * Run through the dedicated, explicitly scoped screenshot workflow.
+ */
 import { chromium } from 'playwright';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 
+const baseUrl = process.env.BROWSER_SMOKE_URL ?? 'http://127.0.0.1:4173/';
 const output = 'docs/assets';
 await mkdir(output, { recursive: true });
-const drawing = await readFile('samples/flow-control-loop/drawing.png');
-const imageUrl = 'data:image/png;base64,' + drawing.toString('base64');
-const tags = [
-  { id: 'demo-ft', tagName: 'FT-101', equipmentType: 'Flow Transmitter', signalType: 'AI', description: 'Synthetic flow loop', engineeringUnits: 'm3/h', pcs7BlockType: 'MonAnL', abb800xaObject: 'AI_Object', confidence: 'high', reviewed: false },
-  { id: 'demo-fcv', tagName: 'FCV-102', equipmentType: 'Flow Control Valve', signalType: 'AO', description: 'Synthetic valve output', engineeringUnits: '%', pcs7BlockType: 'VlvAnL', abb800xaObject: 'AO_Object', confidence: 'medium', reviewed: false },
-  { id: 'demo-pt', tagName: 'PT-103', equipmentType: 'Pressure Transmitter', signalType: 'AI', description: 'Synthetic pressure monitoring', engineeringUnits: 'bar', pcs7BlockType: 'MonAnL', abb800xaObject: 'AI_Object', confidence: 'medium', reviewed: false },
-];
-const projectBackup = JSON.stringify({
-  format: 'vision2dcs-project',
-  version: 1,
-  project: { id: 'readme-synthetic', name: 'Synthetic Flow Loop', date: 'Offline demonstration', imageUrl, instruments: tags }
-});
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
-  await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await page.locator('input[accept="application/json,.json"]').setInputFiles({
-    name: 'synthetic-loop.vision2dcs.json', mimeType: 'application/json', buffer: Buffer.from(projectBackup)
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 960 },
+    deviceScaleFactor: 1,
+    reducedMotion: 'reduce',
   });
-  await page.getByText('FT-101').first().waitFor({ state: 'visible', timeout: 20000 });
+  const apiCalls = [];
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.startsWith('/api/')) apiCalls.push(request.url());
+  });
+
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Explore sample project' }).click();
+  await page.getByLabel('Signal target for FT-101').waitFor({ state: 'visible' });
   await page.locator('img[alt^="P&ID drawing:"]').waitFor({ state: 'visible' });
+  if (await page.locator('table tbody tr').count() !== 5) {
+    throw new Error('README screenshots require the actual five-row bundled synthetic exercise.');
+  }
   await page.screenshot({ path: output + '/nexus-workspace-desktop.png', animations: 'disabled' });
+
+  await page.getByRole('button', { name: 'HMI Topology' }).click();
+  await page.getByText('Declared directed link').waitFor({ state: 'visible' });
+  await page.screenshot({ path: output + '/nexus-hmi-topology.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'P&ID View' }).click();
+
+  await page.getByRole('button', { name: 'Training Lab' }).click();
+  const training = page.getByRole('region', { name: 'Offline cause and effect lab' });
+  const level = training.getByRole('slider', { name: /LT-201/ });
+  await level.focus();
+  await level.press('End');
+  await training.getByText('TRIP', { exact: true }).waitFor({ state: 'visible' });
+  await page.screenshot({ path: output + '/nexus-training-lab.png', animations: 'disabled' });
+
+  await page.getByRole('button', { name: 'Scan Stress' }).click();
+  await page.getByLabel('Stressed image SHA-256').waitFor({ state: 'visible' });
+  await page.screenshot({ path: output + '/nexus-scan-stress.png', animations: 'disabled' });
+
+  await page.getByRole('button', { name: 'Tag Management' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: output + '/nexus-workspace-mobile.png', animations: 'disabled' });
-  await page.close();
-} finally { await browser.close(); }
-
-let readme = await readFile('README.md', 'utf8');
-const old = '![Vision2DCS interface](https://github.com/user-attachments/assets/2259d7d5-cac7-409c-b453-ede8c39f6398)';
-const replacement = [
-  '![NEXUS Vision2DCS engineering workspace (Chromium, synthetic offline fixture)](docs/assets/nexus-workspace-desktop.png)',
-  '',
-  '<sub>Captured from this repository in Chromium, 1440 × 960. The pictured P&ID and tag list are **synthetic offline demonstration fixtures**; no Gemini call or vendor import approval is implied.</sub>',
-  '',
-  '<details><summary>Mobile preview · 390 × 844</summary>',
-  '',
-  '<img src="docs/assets/nexus-workspace-mobile.png" alt="NEXUS Vision2DCS mobile engineering interface with synthetic flow-loop project" width="390">',
-  '',
-  '</details>',
-].join('\n');
-if (readme.includes(old)) readme = readme.replace(old, replacement);
-else if (!readme.includes('docs/assets/nexus-workspace-desktop.png')) throw new Error('README screenshot anchor changed: refusing ungrounded update');
-await writeFile('README.md', readme);
-console.log('Captured genuine Chromium workspace: 1440 × 960 and 390 × 844; README updated.');
+  if (apiCalls.length) throw new Error('A synthetic screenshot capture contacted a model API.');
+  console.log('Captured genuine NEXUS Chromium desktop, HMI, training, scan-stress and mobile views; zero /api calls.');
+} finally {
+  await browser.close();
+}
