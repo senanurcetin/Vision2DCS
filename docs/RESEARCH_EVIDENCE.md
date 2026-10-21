@@ -1,6 +1,6 @@
 # Vision2DCS — NEXUS Scientific Evidence Boundary
 
-**Status: synthetic and unscored.** No measured Gemini extraction quality is claimed.
+**Status (21 October 2026): synthetic drawing corpus; actual Tesseract tag-detection baseline measured; Gemini accuracy unmeasured.** Software tests, hand-labelled fixtures and browser exercises are not model-performance evidence.
 
 ## The ten-case challenge corpus
 
@@ -45,8 +45,8 @@ assessing generalization is the independent drawing, not each extracted tag.
 
 - Need diverse, permitted P&IDs authored by different engineers/tools.
 - Need blinded independent gold-label review and documented disagreements.
-- Need OCR/heuristic baselines, hard-negative, occlusion and scan-noise tests.
-- Need metrics by drawing, difficulty and tag family, not pooled metrics alone.
+- **Tesseract OCR baseline completed** on the 10 synthetic PNGs; hard-negative, real OCR-under-occlusion and scan-noise *scored* experiments remain unperformed.
+- **Per-drawing macro/micro diagnostics implemented** from saved reports; difficulty-stratified and tag-family error analyses need separate measured evidence.
 - Current editor supports only a single connectedTo target per instrument.
 - Neither Siemens PCS7 nor ABB 800xA vendor import format is certified.
 - OT-Sentinel uses heuristic checking, not ISA/IEC functional-safety approval.
@@ -60,9 +60,7 @@ the intended demo scope.
 
 ## Post-hoc drawing-level diagnostics (no additional model calls)
 
-After a **real, explicitly authorized** `npm run eval` has created a valid
-source-hashed report, inspect drawing-level failures separately from micro
-averages:
+After a **real, separately authorized** `npm run eval` **or** the measured local `npm run eval:ocr` has created a valid source-hashed report, inspect drawing-level failures separately from micro averages:
 
 ```sh
 npm run eval:diagnose -- eval/results/latest.json
@@ -113,7 +111,7 @@ the interface displays **no measured extraction results**.
 
 ## Measured non-generative Tesseract tag baseline
 
-An independent, explicitly labelled **tag-reading-only** reference is provided
+A non-generative, explicitly labelled **tag-reading-only** baseline is provided
 by the optional system Tesseract OCR engine and deterministic, bounded ISA-like
 tag token parser:
 
@@ -135,7 +133,7 @@ invented success results. Running the command locally requires installed
 Tesseract. The dedicated `Vision2DCS offline OCR research baseline` GitHub
 Actions workflow installs it and runs actual OCR without Gemini credentials,
 retaining the measured report and per-drawing diagnostics as short-lived
-artifacts, not benchmark numbers hardcoded in documentation.
+artifacts. The [verified baseline run 39515173658](https://github.com/senanurcetin/Vision2DCS/actions/runs/39515173658) measured Tesseract **5.3.4** using English / PSM 11 across all **10 synthetic cases**: tag-only precision **0.5294117647**, recall **0.1914893617**, F1 **0.28125**. This is **actual OCR measurement**, not Gemini accuracy, independent generalization, or proof of vendor import validity.
 
 **Fair comparison:** `eval:compare-tags` only compares precision, recall and
 F1 for instrument tag detection after verifying identical drawing and label
@@ -145,7 +143,7 @@ not predict AI/AO/DI/DO classifications, Siemens block types or signal links;
 zero placeholder classification counts in the v1 report must not be presented
 as a measured skill. Do not use the broader `eval:compare` for mixed versions.
 The corpus is still mostly procedurally related and no generalization claim
-follows from these synthetic results.
+follows from these synthetic results. The 7-day artifact-retention setting means an Actions URL can remain valid after the downloadable JSON expires; never substitute a documentation claim for an unavailable original artifact.
 
 ## Seeded scan-noise and occlusion preview — not a scored benchmark
 
