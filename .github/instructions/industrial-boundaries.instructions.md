@@ -13,9 +13,9 @@ These rules complement .github/copilot-instructions.md.
 - Export changes require CSV escaping, Unicode and XML-format regression tests. Describe vendor outputs as conceptual prototypes only.
 - Keep API credentials in the server layer and use synthetic fixture data.
 
-## No-CI validation
-- Use npm test -- <affected.test.ts> for a focused check, npm run typecheck, npm test, and npm run build when relevant and available locally.
+## Offline development and hosted CI
+- Use Node 24.15+ (pinned 24.22.0). Run `npm test -- <affected.test.ts>` for focused tests, `npm run typecheck`, `npm test`, `npm run docs:check` and `npm run build` as applicable.
 - Do not run npm run eval or invoke external model APIs for routine unit tests.
-- Do not manually launch GitHub Actions or CircleCI. Check provider triggers before creating a pull request; a [skip ci] commit may not suppress all trigger types.
+- Prefer normal PR-triggered GitHub Actions and CircleCI checks; do not bypass exact-head CI or use `[skip ci]` for acceptance. An agent may not claim CI passed without checking actual workflow outcomes.
 - Record exact checks run and checks not run. Do not describe a source-only review as a passing build.
 - Keep commits small and reviewable. Do not bypass required status checks or merge unvalidated changes.
