@@ -1,4 +1,4 @@
 {
-  "name": "DCS-Architect P&ID Analyzer",
-  "description": "A high-precision tool for automation engineers to extract DCS tag lists from P&ID diagrams, mapping them to Siemens PCS7 APL and ABB 800xA standards."
+  "name": "Vision2DCS — NEXUS Research Demo",
+  "description": "Offline-first P&ID instrumentation and HMI research demonstration. Provides synthetic engineering exercises, guarded optional Gemini inference, reproducible OCR/tag benchmarks and human-reviewed conceptual exports; no certified PLC/DCS operation."
 }
