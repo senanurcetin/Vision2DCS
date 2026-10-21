@@ -90,6 +90,7 @@ npm run typecheck
 npm test
 npm run eval:preflight
 npm run eval:inspect
+npm run docs:check
 npm run build
 ```
 
