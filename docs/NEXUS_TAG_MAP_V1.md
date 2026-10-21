@@ -1,6 +1,6 @@
 # NEXUS Industrial Tag Map v1 — offline, read-only contract
 
-This document specifies the **first shared industrial data contract** for the NEXUS suite. Vision2DCS may export it when **every instrument has explicit local review** and the existing tag/classification audit has no blocking errors. It is only a conceptual, manually downloaded JSON file. Neither OT-Sentinel nor Ops-Copilot ingests this file automatically yet.
+This document specifies the **first conceptual read-only tag-map contract** for the NEXUS research demos. Vision2DCS may export it when **every instrument has explicit local review** and the existing tag/classification audit has no blocking errors. It is only a conceptual, manually downloaded JSON file. Neither OT-Sentinel nor Ops-Copilot ingests this file automatically yet.
 
 ## JSON shape
 
@@ -32,7 +32,7 @@ This document specifies the **first shared industrial data contract** for the NE
 
 The exporter refuses files its independent reader would reject: maximum **1 MiB UTF-8 JSON**, **2,000 distinct tags**, project IDs 1–128 characters with only ASCII letters/digits/dot/underscore/colon/hyphen, project titles up to 500 characters, description up to 1,000 and engineering units up to 100 characters, and strict canonical UTC ISO timestamps. Control and bidirectional override characters are prohibited in human-readable fields.
 
-A generated file can be opened locally at Ops-Copilot's `/developer-tools/nexus-tag-map` without a server upload. This is **local file viewing**, not a certified industrial handshake or live three-product synchronization.
+The contract is designed for **manual, read-only, local file review** by compatible NEXUS tooling. Earlier project notes identify an Ops-Copilot `/developer-tools/nexus-tag-map` viewer, but Vision2DCS CI **does not independently verify that another application currently exposes this route**. No cross-application connection, vendor handshake or live synchronization is established by exporting JSON.
 
 ## Reader requirements
 
