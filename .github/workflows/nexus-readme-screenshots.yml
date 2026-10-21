@@ -3,7 +3,10 @@ name: NEXUS README visual capture
 on:
   push:
     branches:
-      - docs/nexus-readme-20261017
+      - docs/vision2dcs-documentation-refresh-20261021
+    paths:
+      - scripts/capture-readme.mjs
+      - .github/workflows/nexus-readme-screenshots.yml
   workflow_dispatch:
 
 permissions:
@@ -11,45 +14,54 @@ permissions:
 
 jobs:
   capture:
-    if: github.repository == 'senanurcetin/Vision2DCS' && github.ref == 'refs/heads/docs/nexus-readme-20261017'
+    # Only an explicit docs branch may receive screenshot commits. Never
+    # silently write to main or run Gemini during documentation maintenance.
+    if: github.repository == 'senanurcetin/Vision2DCS' && startsWith(github.ref, 'refs/heads/docs/')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '24.22.0'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Install screenshot-only Playwright (not an application dependency)
+      - name: Install standalone Chromium capture tool
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Start local Vite server
+      - name: Start local STATIC-OFFLINE demo mode
+        env:
+          VITE_VISION2DCS_PUBLIC_DEMO: 'true'
         run: |
           npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/nexus-vision-vite.log 2>&1 &
-          echo $! > /tmp/nexus-vision-vite.pid
           node -e 'let n=0;const poll=async()=>{try{const r=await fetch("http://127.0.0.1:4173/");if(r.ok)return process.exit(0)}catch{}if(++n>=90)process.exit(1);setTimeout(poll,1000)};poll()'
-      - name: Capture real Chromium desktop/mobile screenshots and update README
+      - name: Capture current Chromium source-controlled synthetic scenarios
+        env:
+          VITE_VISION2DCS_PUBLIC_DEMO: 'true'
         run: node scripts/capture-readme.mjs
-      - name: Confirm PNG output is real and substantial
+      - name: Assert substantial captured PNG assets
         run: |
-          test $(stat -c%s docs/assets/nexus-workspace-desktop.png) -gt 15000
-          test $(stat -c%s docs/assets/nexus-workspace-mobile.png) -gt 10000
-      - name: Upload screenshot evidence
+          for file in             docs/assets/nexus-workspace-desktop.png             docs/assets/nexus-workspace-mobile.png             docs/assets/nexus-hmi-topology.png             docs/assets/nexus-training-lab.png             docs/assets/nexus-scan-stress.png
+          do
+            test -s "$file"
+            test $(stat -c%s "$file") -gt 10000
+          done
+      - name: Preserve visual proof of browser run
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-vision2dcs-readme-screenshots
-          path: docs/assets/nexus-workspace-*.png
+          name: nexus-vision2dcs-browser-captures
+          path: docs/assets/nexus-*.png
           retention-days: 30
-      - name: Commit verified screenshots to this working branch
+          if-no-files-found: error
+      - name: Commit verified screenshots only to current documentation branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/assets/nexus-workspace-*.png
+          git add docs/assets/nexus-workspace-desktop.png docs/assets/nexus-workspace-mobile.png                   docs/assets/nexus-hmi-topology.png docs/assets/nexus-training-lab.png docs/assets/nexus-scan-stress.png
           if ! git diff --cached --quiet; then
-            git commit -m "docs: capture real NEXUS Vision2DCS browser screenshots"
-            git push origin HEAD:docs/nexus-readme-20261017
+            git commit -m "docs: capture current offline NEXUS browser screenshots"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
