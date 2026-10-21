@@ -25,6 +25,7 @@ npm run dev
 | `npm run eval:preflight` | PNG signatures, CRCs, labelled tags and edges | No |
 | `npm run eval:inspect` | **Unscored** fixture inventory | No |
 | `npm run build` | Client and Node SSR bundles | No |
+| `npm run docs:check` | All repository Markdown links, local targets and heading references | No |
 | `npm audit --omit=dev --audit-level=high` | Production dependency advisories (network required) | No model charges |
 | `npm run eval:ocr` | **Actual**, locally installed Tesseract CPU OCR, not fake benchmark numbers | No model charges |
 | `npm run eval:diagnose -- <report.json>` | Source-hashed saved report inspection | No |
