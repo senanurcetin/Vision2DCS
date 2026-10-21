@@ -47,6 +47,14 @@ Vision2DCS illustrates the review process between a process and instrumentation 
 
 The visual review workflow intentionally distinguishes human changes, machine-suggested data and inferred layout. Local **Review** buttons are not a signed engineering approval. A project with unknown or invalid classifications or critical graph errors cannot generate reviewed concept exports.
 
+### Additional browser-verified research views
+
+| Validated declared signal topology | Synthetic alarm learning | Seeded scan perturbations |
+|---|---|---|
+| ![React Flow topology of the offline P&ID with declared cyan signal lines](docs/assets/nexus-hmi-topology.png) | ![Local tank-level teaching alarm at the synthetic trip condition](docs/assets/nexus-training-lab.png) | ![Seeded grayscale speckle and paper-mask noise on a local synthetic drawing](docs/assets/nexus-scan-stress.png) |
+
+<sub>Captured from real offline Chromium interactions. **Teaching thresholds, diagrams, and transformed pixels are synthetic**; none are real plant telemetry, certified interlocks, measured Gemini extraction results or verified vendor imports.</sub>
+
 ## Scientific evidence: implemented vs. measured
 
 The repository includes **10 source-labelled synthetic P&IDs**: two initial schematic examples and eight procedurally styled cases. Every sample has a validated PNG, SVG source, reference instrument labels and annotated directed instrument-signal links. The procedural cases share a drawing grammar and **must not be treated as independent real-plant evidence**.
