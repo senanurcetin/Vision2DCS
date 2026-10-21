@@ -1,42 +1,62 @@
-# Contributing
+# Contributing to Vision2DCS
 
-## Setup
+Vision2DCS is an **offline-first research and educational engineering demo**. Changes must preserve its distinction between synthetic examples, measured results, unverified vendor exports and actual plant engineering. It is **not** a PLC/DCS operating system or a commercial service.
+
+## Environment
+
+- Node.js **24.15+**, pinned **24.22.0** in `.nvmrc`.
+- npm; use the repository lockfile, not ad-hoc dependency upgrades.
+- No Gemini key or Tesseract installation is required for routine offline development.
 
 ```bash
-nvm use            # Node 20, from .nvmrc
+nvm use
 npm ci
-cp .env.example .env.local   # add GEMINI_API_KEY to analyze real drawings
 npm run dev
 ```
 
-The offline app runs without a key. Billable AI routes are disabled by default and require explicit server enablement, an operator access token, and a provider key. Never run real-model evaluation without an approved API budget.
+`cp .env.example .env.local` is **optional** and needed only for separately authorized Gemini experiments. The `GEMINI_API_KEY` alone leaves paid AI disabled. Do not send customer/plant data to a provider, commit credentials or configure unrestricted paid AI.
 
-## Checks
+## Validation matrix
 
-Run these before a milestone review. CI normally runs on commits to `main` and PR updates, but development batches may skip intermediate CI as explained below.
+| Command | Scope | External charges? |
+|---|---|---|
+| `npm run typecheck` | TypeScript source, tests, evaluation and server | No |
+| `npm test` | Vitest regressions and local contracts | No |
+| `npm run eval:preflight` | PNG signatures, CRCs, labelled tags and edges | No |
+| `npm run eval:inspect` | **Unscored** fixture inventory | No |
+| `npm run build` | Client and Node SSR bundles | No |
+| `npm audit --omit=dev --audit-level=high` | Production dependency advisories (network required) | No model charges |
+| `npm run eval:ocr` | **Actual**, locally installed Tesseract CPU OCR, not fake benchmark numbers | No model charges |
+| `npm run eval:diagnose -- <report.json>` | Source-hashed saved report inspection | No |
+| `npm run eval:compare-tags -- <before.json> <after.json>` | Exact-paired **tag-only** metrics | No |
+| `npm run eval` | **Actual external Gemini inference**; explicit model key and `VISION2DCS_EVAL_MAX_CALLS` required | **Potentially billable — do not run routinely** |
 
-| Command | What it checks |
-|---------|----------------|
-| `npm run typecheck` | TypeScript across the app, server, tests and eval |
-| `npm test` | Unit and integration tests (Vitest) |
-| `npm run build` | Client bundle (`dist/`) and production server (`dist-server/`) |
-| `npm run eval` | Extraction quality on `samples/`. Needs a key, so run it when you change prompts, schemas or models |
+The GitHub Actions workflows provide additional Linux Chromium smoke checks in both public and local developer modes, and execute the optional system-Tesseract baseline on the checked-in synthetic images without Gemini credentials. CircleCI independently runs the locked Node quality pipeline. A CI green result **does not** prove AI accuracy, physical safety or vendor import interoperability.
 
-## Batched development and CI
+## Change workflow
 
-During exploratory engineering work, keep changes on a dedicated `work/*` branch rather than updating the release-candidate PR after every edit. Use `[skip ci]` on **intermediate** commits to skip GitHub Actions push/PR checks and CircleCI's normal VCS-push pipeline. Such commits are **unverified by CI** and must never be treated as release-ready. A skipped required GitHub check can remain Pending and prevent a PR from merging.
+1. Start from the current `main`, work on a focused branch, and keep source changes together with affected tests and documentation.
+2. Use synthetic, permissioned P&IDs only. Never fabricate human review, model predictions, measured accuracy, OPC/PLC behavior, or vendor acceptance.
+3. Run the appropriate offline checks and examine actual failures; document checks **not run**.
+4. Open a reviewable PR and require the **latest-head** GitHub CI and relevant Chromium/OCR checks to finish successfully before merging.
+5. Avoid `[skip ci]` and stale branch merges in PRs intended for acceptance. Do not bypass required checks, force-update protected refs or mistake a successful local test for a passing hosted job.
+6. Update the [claim-to-evidence matrix](docs/DEMO_EVIDENCE_MATRIX.md) when new behavior, a measurement or its limitations change.
 
-At a meaningful integration milestone, finish local type-check/unit checks, consolidate changes into the review branch, and create a **fresh HEAD commit without any CI-skip directive**. Require the resulting exact-head GitHub Actions and CircleCI checks before approving or merging. When squashing, ensure **no `[skip ci]` text is inherited into the final merge commit message**, otherwise checks can be accidentally suppressed. Never disable main-branch protection or skip release acceptance to save CI minutes.
+### Code layout
 
-## Where things live
+- `App.tsx`, `components/`, `hooks/`: UI and editor state.
+- `services/`: domain logic, canonical tags, graph checks, exports, pure synthetic simulators.
+- `server/`: guarded API entrypoints, configuration, model SDK and server-only secrets.
+- `eval/`, `samples/`: image preflight, scoring, Tesseract baseline, experiment provenance and fixtures.
+- `docs/`: engineering constraints, scientific and demo evidence, NEXUS visual identity.
 
-- `server/`: everything that touches the Gemini key: the API handler, the Gemini calls, retry, rate limiting, and the Node and Vite adapters.
-- `services/`: pure browser-side logic. New logic goes here with a `*.test.ts` next to it, not in components.
-- `components/`, `hooks/`, `App.tsx`: UI and state.
-- `eval/`, `samples/`: the extraction benchmark.
+### Security and review invariants
 
-## Conventions
+- Browser code must never import `server/`; `server/boundary.test.ts` checks this boundary. Never expose `GEMINI_API_KEY` or operator tokens in output, screenshots or client build.
+- Treat model-generated and uploaded/project data as untrusted. Fail closed on malformed rows, conflicting tag identities, invalid links and fake saved-report summaries. Never silently upgrade `Unknown` to a confident instrument classification.
+- Only reviewed, unblocked **concept exports** may be downloaded. A local review flag is not signed engineering acceptance.
+- Cyan HMI lines are validated explicitly declared signal edges; gray dashed lines are heuristics. Neither constitutes actual plant wiring approval.
+- PCS 7 CSV, ABB 800xA XML and safety advisories are illustrative; no vendor import, IEC 61511/SIL or actual PLC authorization is implied.
+- Use a dummy canary to verify the client bundle contains no server secret after build configuration changes. Do not run paid Gemini evaluation or access real OT hardware without a separate, explicit authorization.
 
-- The browser must never import from `server/` (`server/boundary.test.ts` enforces this), and nothing may inline secrets into the client bundle. After changing build config, build with a dummy key and confirm it does not appear in `dist/`, e.g. `GEMINI_API_KEY=canary-123 npm run build && ! grep -r canary-123 dist`.
-- Model output is untrusted input. Validate it in `services/normalizeInstruments.ts`, and mark anything uncertain as `Unknown` or low confidence. Never replace it with a plausible default.
-- Keep `TECHNICAL_GUIDE.md` in step with the audit rules, export formats and server behavior.
+See [Technical Guide](TECHNICAL_GUIDE.md), [Security Policy](SECURITY.md), [Research Evidence](docs/RESEARCH_EVIDENCE.md) and [Demo Acceptance](docs/DEMO_ACCEPTANCE.md).
