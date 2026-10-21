@@ -1,12 +1,8 @@
 name: NEXUS README visual capture
 
+# For a future documentation update, dispatch manually on a docs/* branch.
+# This workflow is intentionally never self-triggered by its screenshot commits.
 on:
-  push:
-    branches:
-      - docs/vision2dcs-documentation-refresh-20261021
-    paths:
-      - scripts/capture-readme.mjs
-      - .github/workflows/nexus-readme-screenshots.yml
   workflow_dispatch:
 
 permissions:
