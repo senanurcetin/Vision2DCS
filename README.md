@@ -144,8 +144,6 @@ docs/                             Scientific evidence, demo acceptance and data 
 | [NEXUS Tag Map v1](docs/NEXUS_TAG_MAP_V1.md) | Read-only JSON contract and strict local review limits |
 | [NEXUS brand identity](docs/NEXUS_BRAND.md) | Local SVG provenance, palette and accessible use |
 | [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) | Development practices, safe reporting |
-| [Reviewer brief](docs/hiring-summary.md) | Concise project overview and what is independently supported |
-
 ## Boundaries and license
 
 **Not a commercial or operational product.** No SaaS accounts, subscriptions, payments, plant-network connectivity, PLC/DCS writes, autonomous actuator actions, certified cause/effect or SIL claims. Vendor-style exports are **concept formats, not verified import files**. An engineer must validate every real design independently; see [vendor evidence gap #2](https://github.com/senanurcetin/Vision2DCS/issues/2) and [ongoing research #88](https://github.com/senanurcetin/Vision2DCS/issues/88).
