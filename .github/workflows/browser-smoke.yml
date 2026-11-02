@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         demo_mode: [developer, public]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       VITE_VISION2DCS_PUBLIC_DEMO: ${{ matrix.demo_mode == 'public' && 'true' || 'false' }}
