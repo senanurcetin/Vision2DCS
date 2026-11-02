@@ -46,7 +46,7 @@ jobs:
       - name: Validate source-hashed measured OCR report
         run: npm run eval:diagnose -- eval/results/latest.json > eval/results/ocr-diagnostics.json
       - name: Retain source-hashed report as research evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vision2dcs-measured-tesseract-ocr-${{ github.run_id }}
           path: |

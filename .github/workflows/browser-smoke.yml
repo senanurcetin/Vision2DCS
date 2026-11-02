@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload responsive screenshot evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vision2dcs-chromium-smoke-${{ matrix.demo_mode }}
           path: artifacts/browser-smoke/*.png

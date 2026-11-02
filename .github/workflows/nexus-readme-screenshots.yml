@@ -46,7 +46,7 @@ jobs:
             test $(stat -c%s "$file") -gt 10000
           done
       - name: Preserve visual proof of browser run
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nexus-vision2dcs-browser-captures
           path: docs/assets/nexus-*.png
