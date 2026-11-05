@@ -99,6 +99,14 @@ describe('parseInstrumentResponse', () => {
     },
   );
 
+  it('accepts the exact instrument limit without losing the final row', () => {
+    const rows = Array.from({ length: 2000 }, (_, index) => ({ tagName: `PT-${index + 1}` }));
+    const result = parseInstrumentResponse(JSON.stringify(rows), 'run');
+
+    expect(result).toHaveLength(2000);
+    expect(result.at(-1)).toMatchObject({ id: 'run-1999', tagName: 'PT-2000' });
+  });
+
   it('rejects excessive AI arrays before instrument normalization', () => {
     expect(() => parseInstrumentResponse(JSON.stringify(Array.from({ length: 2001 }, () => ({tagName: 'PT-101'}))), 'run')).toThrow('2000 instrument limit');
   });
